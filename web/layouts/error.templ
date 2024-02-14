@@ -1,0 +1,27 @@
+package layouts
+
+templ ErrorLayout() {
+	<!DOCTYPE html>
+	<html lang="en" data-framework="templ/htmx">
+		<head>
+			<meta charset="utf-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<meta name="description" content="A TodoMVC workload app written with Templ/HTMX."/>
+			<title>Todo+: Error</title>
+			<link rel="stylesheet" href="/assets/styles/main.css"/>
+		</head>
+		<body>
+			<header class="header">
+				<a href="/" style="text-decoration: none"><h1 class="title">todos</h1></a>
+			</header>
+			{ children... }
+			<footer class="footer">
+				<p class="footer-text">Double-click to edit a todo</p>
+				<p class="footer-text">Created by eltimn</p>
+				<p class="footer-text">Part of <a href="http://todomvc.com">TodoMVC</a></p>
+			</footer>
+			<script src="/assets/js/htmx.min.js"></script>
+			<script src="https://unpkg.com/htmx.org@1.9.10/dist/ext/response-targets.js"></script>
+		</body>
+	</html>
+}

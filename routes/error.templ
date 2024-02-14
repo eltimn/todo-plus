@@ -1,0 +1,13 @@
+package routes
+
+import "eltimn/todo-plus/web/layouts"
+
+templ ErrorPartial(err *appError) {
+	<div class="error">Error: { err.Error() }</div>
+}
+
+templ ErrorPage(err *appError) {
+	@layouts.ErrorLayout() {
+		@ErrorPartial(err)
+	}
+}

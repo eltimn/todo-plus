@@ -1,0 +1,21 @@
+package components
+
+import (
+	"time"
+
+	"eltimn/todo-plus/web/layouts"
+)
+
+templ DisplayTime(d time.Time) {
+	@layouts.MainLayout() {
+		<div>Now: { d.String() }</div>
+	}
+}
+
+templ NotFound() {
+	<div>404 - Not found</div>
+}
+
+templ Hello(name string) {
+	<div>Hello, { name }!</div>
+}

@@ -1,0 +1,6 @@
+*_templ.go
+*_templ.txt
+.envrc
+tmp/
+.devbox/
+.direnv/

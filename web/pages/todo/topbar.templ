@@ -1,0 +1,26 @@
+package todo
+
+func markAllClassName(activeCount int) string {
+	if activeCount > 0 {
+		return "show"
+	}
+	return "hide"
+}
+
+templ topbar(activeCount int) {
+	<todo-topbar dir="ltr" total-items="0" active-items="0" completed-items="0">
+		<header class="topbar">
+			<div class="new-todo-display">
+				<div class="error"></div>
+				<form hx-post="/todo/create" hx-target="#todos" hx-swap="outerHTML" hx-target-error="previous .error">
+					<label for="new-todo" class="visually-hidden">Enter a new todo.</label>
+					<input name="new-todo" class="new-todo-input" placeholder="What needs to be done?" autofocus=""/>
+				</form>
+			</div>
+			<div class={ "toggle-all-container", markAllClassName(activeCount) }>
+				<input id="toggle-all" class="toggle-all-input" type="checkbox"/>
+				<label for="toggle-all" class="toggle-all-label">Mark all todos as complete.</label>
+			</div>
+		</header>
+	</todo-topbar>
+}

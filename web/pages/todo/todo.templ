@@ -1,0 +1,22 @@
+package todo
+
+import (
+	"eltimn/todo-plus/web/layouts"
+	"eltimn/todo-plus/models"
+)
+
+templ TodoApp(todos []models.Todo, activeCount int) {
+	<section class="app" id="todos">
+		@topbar(activeCount)
+		<main class="main">
+			@todoList(todos)
+		</main>
+		@bottombar()
+	</section>
+}
+
+templ TodoAppPage(todos []models.Todo, activeCount int) {
+	@layouts.MainLayout() {
+		@TodoApp(todos, activeCount)
+	}
+}
