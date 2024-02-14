@@ -3,12 +3,12 @@
 
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-23.11";
-    nixpkgs-unstable.url = "nixpkgs/nixos-unstable";
+    # nixpkgs-unstable.url = "nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     templ.url = "github:a-h/templ";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, flake-utils, templ }:
+  outputs = { self, nixpkgs, flake-utils, templ }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};

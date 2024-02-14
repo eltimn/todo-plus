@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+// https://stackoverflow.com/questions/32485021/simplifying-repetitive-error-handling-with-julienschmidt-httprouter
 // appError is a custom error type for handling application errors in the http pipeline
 type appError struct {
 	error
