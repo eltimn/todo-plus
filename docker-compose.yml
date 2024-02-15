@@ -1,0 +1,17 @@
+---
+# https://hub.docker.com/_/mongo/
+
+version: "3.8"
+
+services:
+  mongo:
+    image: mongo:7.0
+    ports:
+      - "7017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+# Run an Ubuntu container with the mongo_data volume attached at /mongo_data
+# docker run -it --rm -v rotozen_mongo_data:/mongo_data ubuntu /bin/bash
+volumes:
+  mongo_data:
