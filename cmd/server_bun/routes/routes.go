@@ -1,7 +1,7 @@
 package routes
 
 import (
-	"eltimn/todo-plus/web/components"
+	"eltimn/todo-plus/web/pages"
 	"log/slog"
 	"net/http"
 	"time"
@@ -12,18 +12,22 @@ import (
 func Routes(router *bunrouter.Router) {
 
 	// serve static files
-	fileServer := http.FileServer(http.Dir("web/static"))
-	// fileServer = http.StripPrefix("/assets/", fileServer)
+	fileServer := http.FileServer(http.Dir("dist/assets"))
+	fileServer = http.StripPrefix("/assets/", fileServer)
 	router.GET("/assets/*path", bunrouter.HTTPHandler(fileServer))
 
 	todoRoutes(router.NewGroup("/todo").Use(webErrorHandler))
 
 	router.GET("/hello/:name", helloHandler)
 
-	router.GET("/now", func(w http.ResponseWriter, req bunrouter.Request) error {
-		components.DisplayTime(time.Now()).Render(req.Context(), w)
-		return nil
-	})
+	router.GET("/now", nowHandler)
+
+	router.GET("/", homeHandler)
+}
+
+func homeHandler(w http.ResponseWriter, req bunrouter.Request) error {
+	pages.HomePage().Render(req.Context(), w)
+	return nil
 }
 
 func helloHandler(w http.ResponseWriter, req bunrouter.Request) error {
@@ -33,6 +37,11 @@ func helloHandler(w http.ResponseWriter, req bunrouter.Request) error {
 	// if name == "tim" {
 	// 	return fmt.Errorf("i am sorry, I can't do that: %d", http.StatusForbidden)
 	// }
-	components.Hello(name).Render(req.Context(), w)
+	pages.Hello(name).Render(req.Context(), w)
+	return nil
+}
+
+func nowHandler(w http.ResponseWriter, req bunrouter.Request) error {
+	pages.NowPage(time.Now()).Render(req.Context(), w)
 	return nil
 }

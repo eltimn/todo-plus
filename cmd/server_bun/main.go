@@ -32,7 +32,7 @@ func main() {
 
 	listenAddress, ok := os.LookupEnv("WEB_LISTEN")
 	if !ok {
-		listenAddress = "127.0.0.1:8989"
+		listenAddress = ":8989"
 	}
 
 	// init mongodb
@@ -43,6 +43,7 @@ func main() {
 	slog.Info("Connected to MongoDB", slog.String("uri", mongoUri))
 
 	// create the router
+	// https://gist.github.com/alexaandru/747f9d7bdfb1fa35140b359bf23fa820 <- syntatic sugar around net/http
 	router := bunrouter.New(
 		bunrouter.WithNotFoundHandler(routes.NotFoundHandler),
 		bunrouter.Use(reqlog.NewMiddleware(reqlog.FromEnv("BUNDEBUG"))),

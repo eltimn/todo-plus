@@ -22,13 +22,17 @@
       in {
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
+            air
+            esbuild
+            go-task
             go_1_22
             gotools
             golangci-lint
             nodejs
             mongosh
-            air
+            sass
             (templ system)
+            tailwindcss
           ];
 
           shellHook = ''

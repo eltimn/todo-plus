@@ -1,0 +1,13 @@
+{
+  "name": "todo-plus",
+  "version": "0.0.1",
+  "scripts": {
+    "predevcss": "mkdir -p dist/assets/css",
+    "devcss": "tailwindcss -i ./web/assets/css/main.css -o dist/assets/css/main.css --watch",
+    "predevjs": "mkdir -p dist/assets/js; cp web/assets/js/htmx*.min.js dist/assets/js/",
+    "devjs": "esbuild web/assets/js/main.js --outdir=dist/assets/js --bundle --watch --target='esnext'"
+  },
+  "devDependencies": {
+    "daisyui": "^4.7.2"
+  }
+}

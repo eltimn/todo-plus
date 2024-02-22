@@ -1,0 +1,53 @@
+package layouts
+
+// https://versoly.com/versoly-ui/components/navbar
+templ VersolyLayout() {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<meta http-equiv="X-UA-Compatible" content="ie=edge"/>
+			<title>TodoMVC: Templ/HTMX</title>
+			<meta name="author" content="name"/>
+			<meta name="description" content="description here"/>
+			<meta name="keywords" content="keywords,here"/>
+			<link rel="stylesheet" href="/assets/css/main.css"/>
+		</head>
+		<body class="">
+			<nav class="navbar sticky top-0 navbar-dark bg-dark" id="navbar">
+				<div class="container">
+					<a class="navbar-brand text-white" href="/">
+						<img width="30" height="45" alt="company logo" src="https://d1pnnwteuly8z3.cloudfront.net/images/dafc1e05-b0e8-4c6d-b375-4a62333bbd5a/2f7d47af-ad93-480c-a98c-5085f3c724c8.png"/>
+						<span>Ipsum</span>
+					</a>
+					<button class="navbar-btn" data-toggle="collapse" data-target="#navbar-row" aria-expanded="false" aria-label="Toggle navigation">
+						<span class="sr-only">Open navbar menu</span>
+						<span class="block h-1 rounded-full bg-white"></span>
+						<span class="block h-1 mt-1 rounded-full bg-white"></span>
+						<span class="block h-1 mt-1 rounded-full bg-white"></span>
+					</button>
+					<div class="navbar-row" id="navbar-row">
+						<ul class="navbar-col"></ul>
+						<ul class="navbar-col"></ul>
+						<ul class="navbar-col">
+							<li>
+								<a class="nav-link text-white font-semibold" href="/#">Pricing</a>
+							</li>
+							<li>
+								<a class="nav-link text-white font-semibold" href="#">Login</a>
+							</li>
+							<li>
+								<a class="nav-link btn btn-primary text-white font-semibold" href="#">Get Started ➔</a>
+							</li>
+						</ul>
+					</div>
+				</div>
+			</nav>
+			<div class="container shadow-lg mx-auto bg-white mt-24 md:mt-18">
+				{ children... }
+			</div>
+			<script src="https://unpkg.com/versoly-ui@1.0.6/dist/versoly-ui.js"></script>
+		</body>
+	</html>
+}

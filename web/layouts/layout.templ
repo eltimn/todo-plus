@@ -8,17 +8,21 @@ templ MainLayout() {
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<meta name="description" content="A TodoMVC workload app written with Templ/HTMX."/>
 			<title>TodoMVC: JavaScript Web Components</title>
-			<link rel="stylesheet" href="/assets/styles/main.css"/>
+			<link rel="stylesheet" href="/assets/css/main.css"/>
 		</head>
 		<body>
-			<header class="header">
-				<a href="/" style="text-decoration: none"><h1 class="title">todos</h1></a>
+			<header>
+				<h1 class="text-center text-3xl font-bold">Todos</h1>
 			</header>
-			{ children... }
-			<footer class="footer">
-				<p class="footer-text">Double-click to edit a todo</p>
-				<p class="footer-text">Created by eltimn</p>
-				<p class="footer-text">Part of <a href="http://todomvc.com">TodoMVC</a></p>
+			<div class="flex justify-center mt-10">
+				{ children... }
+			</div>
+			<footer class="footer footer-center p-10 bg-base-200 text-base-content rounded">
+				<aside>
+					<p>Double-click to edit a todo</p>
+					<p>Created by eltimn</p>
+					<p>Inspired <a href="http://todomvc.com">TodoMVC</a></p>
+				</aside>
 			</footer>
 			<script src="/assets/js/htmx.min.js"></script>
 			<script src="https://unpkg.com/htmx.org@1.9.10/dist/ext/response-targets.js"></script>

@@ -6,17 +6,17 @@ import (
 )
 
 templ TodoApp(todos []models.Todo, activeCount int) {
-	<section class="app" id="todos">
-		@topbar(activeCount)
-		<main class="main">
-			@todoList(todos)
-		</main>
-		@bottombar()
+	<section id="todos">
+		@topbar()
+		<div>
+			@todoList(todos, activeCount)
+		</div>
+		@bottombar(activeCount)
 	</section>
 }
 
 templ TodoAppPage(todos []models.Todo, activeCount int) {
-	@layouts.MainLayout() {
+	@layouts.TailwinUILayout() {
 		@TodoApp(todos, activeCount)
 	}
 }

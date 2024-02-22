@@ -5,12 +5,19 @@ import (
 	"eltimn/todo-plus/web/pages/todo"
 	"log/slog"
 	"net/http"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 const userId = "blv7133ov73uoau"
 
 func renderTodoApp(w http.ResponseWriter, r *http.Request, isFullPage bool) *appError {
-	todos, count, err := models.FetchTodos(userId)
+	uid, err := primitive.ObjectIDFromHex(userId)
+	if err != nil {
+		return &appError{Message: "Error rendering todo app", Code: http.StatusInternalServerError, error: err}
+	}
+
+	todos, count, err := models.FetchTodos(uid)
 	if err != nil {
 		return &appError{Message: "Error fetching todos", Code: http.StatusInternalServerError, error: err}
 	}
@@ -36,7 +43,12 @@ func createTodoHandler(w http.ResponseWriter, r *http.Request) *appError {
 	newTodo := r.PostFormValue("new-todo")
 	slog.Debug("newTodo", slog.String("newTodo", newTodo))
 
-	err := models.CreateNewTodo(userId, newTodo, newTodo)
+	uid, err := primitive.ObjectIDFromHex(userId)
+	if err != nil {
+		return &appError{Message: "Error creating new todo", Code: http.StatusInternalServerError, error: err}
+	}
+
+	err = models.CreateNewTodo(uid, newTodo, newTodo)
 	if err != nil {
 		return &appError{Message: "Error creating new todo", Code: http.StatusInternalServerError, error: err}
 	}

@@ -1,0 +1,19 @@
+package pages
+
+import (
+	"eltimn/todo-plus/web/layouts"
+)
+
+templ Home() {
+	<ul>
+		<li><a href="/todo">Todo</a></li>
+		<li><a href="/hello/tim">Hello</a></li>
+		<li><a href="/now">Time</a></li>
+	</ul>
+}
+
+templ HomePage() {
+	@layouts.TailwinUILayout() {
+		@Home()
+	}
+}

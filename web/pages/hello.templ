@@ -1,0 +1,11 @@
+package pages
+
+import (
+	"eltimn/todo-plus/web/layouts"
+)
+
+templ Hello(name string) {
+	@layouts.TailwinUILayout() {
+		<div>Hello, { name }!</div>
+	}
+}

@@ -1,0 +1,13 @@
+package pages
+
+import (
+	"time"
+
+	"eltimn/todo-plus/web/layouts"
+)
+
+templ NowPage(d time.Time) {
+	@layouts.TailwinUILayout() {
+		<div>Now: { d.String() }</div>
+	}
+}

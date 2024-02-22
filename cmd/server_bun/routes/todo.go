@@ -38,6 +38,86 @@ func (th *todoHandler) create(w http.ResponseWriter, req bunrouter.Request) erro
 	return nil
 }
 
+func (th *todoHandler) delete(w http.ResponseWriter, req bunrouter.Request) error {
+	params := req.Params()
+	todoId := params.ByName("todoId")
+	slog.Debug("todoId", slog.String("todoId", todoId))
+
+	tid, err := primitive.ObjectIDFromHex(todoId)
+	if err != nil {
+		return err
+	}
+
+	err = models.DeleteTodoById(tid)
+	if err != nil {
+		return err
+	}
+
+	renderTodoApp(w, req, false)
+	return nil
+}
+
+func (th *todoHandler) toggleCompleted(w http.ResponseWriter, req bunrouter.Request) error {
+	params := req.Params()
+	todoId := params.ByName("todoId")
+	slog.Info("todoId", slog.String("todoId", todoId))
+
+	tid, err := primitive.ObjectIDFromHex(todoId)
+	if err != nil {
+		return err
+	}
+
+	todo, err := models.FetchTodo(tid)
+	if err != nil {
+		return err
+	}
+
+	err = models.ToggleTodoCompleted(todo)
+	if err != nil {
+		return err
+	}
+
+	renderTodoApp(w, req, false)
+	return nil
+}
+
+func (th *todoHandler) toggleAllCompleted(w http.ResponseWriter, req bunrouter.Request) error {
+	uid, err := primitive.ObjectIDFromHex(userId)
+	if err != nil {
+		return err
+	}
+
+	params := req.Params()
+	count, err := params.Int64("count")
+	if err != nil {
+		return err
+	}
+	slog.Debug("count", slog.Int64("count", count))
+
+	err = models.ToggleAllCompleted(uid, count > 0)
+	if err != nil {
+		return err
+	}
+
+	renderTodoApp(w, req, false)
+	return nil
+}
+
+func (th *todoHandler) deleteCompleted(w http.ResponseWriter, req bunrouter.Request) error {
+	uid, err := primitive.ObjectIDFromHex(userId)
+	if err != nil {
+		return err
+	}
+
+	err = models.DeleteAllCompleted(uid)
+	if err != nil {
+		return err
+	}
+
+	renderTodoApp(w, req, false)
+	return nil
+}
+
 func renderTodoApp(w http.ResponseWriter, req bunrouter.Request, isFullPage bool) error {
 	uid, err := primitive.ObjectIDFromHex(userId)
 	if err != nil {
@@ -62,5 +142,9 @@ func todoRoutes(group *bunrouter.Group) {
 	todoHandler := &todoHandler{}
 
 	group.GET("", todoHandler.index)
+	group.DELETE("/:todoId", todoHandler.delete)
 	group.POST("/create", todoHandler.create)
+	group.PATCH("/toggle-completed/:todoId", todoHandler.toggleCompleted)
+	group.POST("/toggle-all/:count", todoHandler.toggleAllCompleted)
+	group.DELETE("/delete-completed", todoHandler.deleteCompleted)
 }

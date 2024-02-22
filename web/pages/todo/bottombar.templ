@@ -1,21 +1,21 @@
 package todo
 
-templ bottombar() {
-	<todo-bottombar dir="ltr" total-items="0" active-items="0">
-		<footer class="bottombar">
-			<div class="todo-status">0 items left!</div>
-			<ul class="filter-list">
-				<li class="filter-item">
-					<a id="filter-link-all" class="filter-link selected" href="#/" data-route="all">All</a>
-				</li>
-				<li class="filter-item">
-					<a id="filter-link-active" class="filter-link" href="#/active" data-route="active">Active</a>
-				</li>
-				<li class="filter-item">
-					<a id="filter-link-completed" class="filter-link" href="#/completed" data-route="completed">Completed</a>
-				</li>
-			</ul>
-			<button id="clear-completed" class="clear-completed-button">Clear completed</button>
-		</footer>
-	</todo-bottombar>
+import "strconv"
+
+templ bottombar(itemsLeft int) {
+	<footer>
+		<div>{ strconv.Itoa(itemsLeft) } items left!</div>
+		<ul>
+			<li>
+				<a id="filter-link-all" href="#/" data-route="all">All</a>
+			</li>
+			<li>
+				<a id="filter-link-active" href="#/active" data-route="active">Active</a>
+			</li>
+			<li>
+				<a id="filter-link-completed" href="#/completed" data-route="completed">Completed</a>
+			</li>
+		</ul>
+		<button hx-delete="/todo/delete-completed" hx-target="#todos" hx-swap="outerHTML">Remove completed</button>
+	</footer>
 }

@@ -4,3 +4,6 @@
 tmp/
 .devbox/
 .direnv/
+node_modules
+dist
+.task/
