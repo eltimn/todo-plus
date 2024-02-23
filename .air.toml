@@ -2,8 +2,8 @@ root = "."
 tmp_dir = "tmp"
 
 [build]
-bin = "./dist/server_bun"
-cmd = "templ generate && go build -o ./dist/server_bun cmd/server_bun/main.go"
+bin = "./dist/server"
+cmd = "templ generate && go build -o ./dist/server cmd/server/main.go"
 delay = 1000
 exclude_dir = ["assets", "tmp", "vendor"]
 exclude_file = []

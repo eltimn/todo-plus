@@ -7,7 +7,7 @@ templ ErrorPartial(err *appError) {
 }
 
 templ ErrorPage(err *appError) {
-	@layouts.ErrorLayout() {
+	@layouts.TailwindUILayout() {
 		@ErrorPartial(err)
 	}
 }

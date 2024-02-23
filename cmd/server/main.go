@@ -17,30 +17,27 @@ import (
 )
 
 func main() {
+	// setup logging
+	logLevel, logHandler := logging.Configure(os.Getenv("LOG_LEVEL"), os.Getenv("LOG_HANDLER"))
+	slog.Info("Configured logging", slog.String("level", logLevel), slog.String("handler", logHandler))
+
 	// grab some env vars
-	uri, ok := os.LookupEnv("MONGODB_URI")
+	mongoUri, ok := os.LookupEnv("MONGODB_URI")
 	if !ok {
-		panic("You must set a 'MONGODB_URI' environment variable. See\n\t https://www.mongodb.com/docs/drivers/go/current/usage-examples/#environment-variable")
+		mongoUri = "mongodb://localhost:27017/todo"
 	}
 
 	listenAddress, ok := os.LookupEnv("WEB_LISTEN")
 	if !ok {
-		panic("You must set a 'WEB_LISTEN' environment variable. See\n\t https://golang.org/pkg/net/http/#ListenAndServe")
+		listenAddress = ":8989"
 	}
 
-	logLevel := os.Getenv("LOG_LEVEL")
-	logHandler := os.Getenv("LOG_HANDLER")
-
-	// setup logging
-	level, handler := logging.Configure(logLevel, logHandler)
-	slog.Info("Configured logging", slog.String("level", level), slog.String("handler", handler))
-
 	// init mongodb
-	if err := models.InitMongoDB(uri); err != nil {
+	if err := models.InitMongoDB(mongoUri); err != nil {
 		slog.Error("Error connecting to MongoDB", utils.ErrAttr(err))
 		os.Exit(1)
 	}
-	slog.Info("Connected to MongoDB", slog.String("uri", uri))
+	slog.Info("Connected to MongoDB", slog.String("uri", mongoUri))
 
 	// add handlers
 	routes.Routes()

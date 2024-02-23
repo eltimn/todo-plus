@@ -16,7 +16,7 @@ templ TodoApp(todos []models.Todo, activeCount int) {
 }
 
 templ TodoAppPage(todos []models.Todo, activeCount int) {
-	@layouts.TailwinUILayout() {
+	@layouts.TailwindUILayout() {
 		@TodoApp(todos, activeCount)
 	}
 }

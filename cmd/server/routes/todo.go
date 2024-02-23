@@ -33,10 +33,7 @@ func renderTodoApp(w http.ResponseWriter, r *http.Request, isFullPage bool) *app
 
 func todoHandler(w http.ResponseWriter, r *http.Request) *appError {
 	slog.Debug("Request", slog.Any("request", r.URL.Path))
-	if r.URL.Path == "/" {
-		renderTodoApp(w, r, true)
-	}
-	return nil
+	return renderTodoApp(w, r, true)
 }
 
 func createTodoHandler(w http.ResponseWriter, r *http.Request) *appError {
@@ -53,13 +50,12 @@ func createTodoHandler(w http.ResponseWriter, r *http.Request) *appError {
 		return &appError{Message: "Error creating new todo", Code: http.StatusInternalServerError, error: err}
 	}
 
-	return &appError{Message: "Error creating new todo", Code: http.StatusInternalServerError, error: err}
+	// return &appError{Message: "Error creating new todo", Code: http.StatusInternalServerError, error: err}
 
-	// renderTodoApp(w, r, false)
-	// return nil
+	return renderTodoApp(w, r, false)
 }
 
 func todoRoutes() {
-	http.Handle("GET /", appHandler(todoHandler))
+	http.Handle("GET /todo", appHandler(todoHandler))
 	http.Handle("POST /todo/create", appHandler(createTodoHandler))
 }

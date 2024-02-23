@@ -10,7 +10,6 @@ import (
 )
 
 func Routes(router *bunrouter.Router) {
-
 	// serve static files
 	fileServer := http.FileServer(http.Dir("dist/assets"))
 	fileServer = http.StripPrefix("/assets/", fileServer)
