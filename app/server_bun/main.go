@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"eltimn/todo-plus/cmd/server_bun/routes"
+	"eltimn/todo-plus/app/server_bun/routes"
 	"eltimn/todo-plus/logging"
 	"eltimn/todo-plus/models"
 	"eltimn/todo-plus/utils"

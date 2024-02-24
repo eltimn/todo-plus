@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"eltimn/todo-plus/cmd/server/routes"
+	"eltimn/todo-plus/app/server/routes"
 	"eltimn/todo-plus/logging"
 	"eltimn/todo-plus/models"
 	"eltimn/todo-plus/utils"
