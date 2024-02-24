@@ -1,37 +1,46 @@
 package routes
 
-import (
-	"eltimn/todo-plus/utils"
-	"log/slog"
-	"net/http"
-)
+// func webErrorHandler(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
+// 	return func(w http.ResponseWriter, req bunrouter.Request) error {
+// 		// Call the next handler on the chain to get the error.
+// 		err := next(w, req)
 
-// https://stackoverflow.com/questions/32485021/simplifying-repetitive-error-handling-with-julienschmidt-httprouter
-// appError is a custom error type for handling application errors in the http pipeline
-type appError struct {
-	error
-	Message string
-	Code    int
-}
+// 		switch err := err.(type) {
+// 		case nil:
+// 			// no error
+// 		case HttpError: // already a HttpError
+// 			renderWebError(w, req, err)
+// 		default:
+// 			renderWebError(w, req, NewHttpError(err))
+// 		}
 
-func (e *appError) Error() string {
-	return e.Message
-}
+// 		return err // return the err in case there other middlewares
+// 	}
+// }
 
-type appHandler func(http.ResponseWriter, *http.Request) *appError
+// func renderWebError(w http.ResponseWriter, req bunrouter.Request, httpErr HttpError) {
+// 	slog.Error(httpErr.Error(), utils.ErrAttr(httpErr))
 
-func (fn appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if err := fn(w, r); err != nil {
-		slog.Error(err.Error(), utils.ErrAttr(err))
-		// http.Error(w, err.Error(), err.Code)
+// 	w.WriteHeader(httpErr.statusCode)
 
-		w.WriteHeader(err.Code)
+// 	// if htmx sent this request, return a partial
+// 	isHxRequest := req.Header.Get("HX-Request")
+// 	if isHxRequest == "true" {
+// 		ErrorPartial(httpErr).Render(req.Context(), w)
+// 	} else {
+// 		ErrorPage(httpErr).Render(req.Context(), w)
+// 	}
+// }
 
-		isHxRequest := r.Header.Get("HX-Request")
-		if isHxRequest == "true" {
-			ErrorPartial(err).Render(r.Context(), w)
-		} else {
-			ErrorPage(err).Render(r.Context(), w)
-		}
-	}
-}
+// func NotFoundHandler(w http.ResponseWriter, req bunrouter.Request) error {
+// 	err := HttpError{
+// 		statusCode: http.StatusNotFound,
+
+// 		Code:    "not_found",
+// 		Message: "Page Not Found",
+// 	}
+
+// 	renderWebError(w, req, err)
+
+// 	return nil
+// }

@@ -18,9 +18,7 @@ func Routes(router *bunrouter.Router) {
 	todoRoutes(router.NewGroup("/todo").Use(webErrorHandler))
 
 	router.GET("/hello/:name", helloHandler)
-
 	router.GET("/now", nowHandler)
-
 	router.GET("/", homeHandler)
 }
 
@@ -33,9 +31,6 @@ func helloHandler(w http.ResponseWriter, req bunrouter.Request) error {
 	params := req.Params()
 	name := params.ByName("name")
 	slog.Info("Name", slog.String("name", name))
-	// if name == "tim" {
-	// 	return fmt.Errorf("i am sorry, I can't do that: %d", http.StatusForbidden)
-	// }
 	pages.Hello(name).Render(req.Context(), w)
 	return nil
 }

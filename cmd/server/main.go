@@ -39,13 +39,14 @@ func main() {
 	}
 	slog.Info("Connected to MongoDB", slog.String("uri", mongoUri))
 
-	// add handlers
-	routes.Routes()
+	// create router
+	router := routes.Routes()
 
 	// start server
 	// https://dev.to/mokiat/proper-http-shutdown-in-go-3fji
 	server := &http.Server{
-		Addr: listenAddress,
+		Addr:    listenAddress,
+		Handler: router.ServeMux,
 	}
 
 	slog.Info("Server starting", "listen", listenAddress)

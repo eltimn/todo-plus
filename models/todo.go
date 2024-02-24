@@ -25,7 +25,7 @@ type Todo struct {
 	IsCompleted bool               `bson:"is_completed"`
 }
 
-func CreateNewTodo(userId primitive.ObjectID, plainText, richText string) error {
+func CreateNewTodo(cntxt context.Context, userId primitive.ObjectID, plainText, richText string) error {
 	newTodo := Todo{
 		UserID:      userId,
 		PlainText:   plainText,
@@ -35,7 +35,7 @@ func CreateNewTodo(userId primitive.ObjectID, plainText, richText string) error 
 
 	slog.Info("newTodo", slog.Any("newTodo", newTodo))
 
-	ctx, cancel := context.WithTimeout(context.TODO(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(cntxt, 5*time.Second)
 	defer cancel()
 	res, err := todoCollection().InsertOne(ctx, newTodo)
 	if err != nil {
@@ -48,9 +48,9 @@ func CreateNewTodo(userId primitive.ObjectID, plainText, richText string) error 
 	return nil
 }
 
-func DeleteTodoById(todoId primitive.ObjectID) error {
+func DeleteTodoById(cntxt context.Context, todoId primitive.ObjectID) error {
 	filter := bson.D{{Key: "_id", Value: todoId}}
-	_, err := todoCollection().DeleteOne(context.TODO(), filter)
+	_, err := todoCollection().DeleteOne(cntxt, filter)
 	if err != nil {
 		slog.Error("Error deleting a Todo", utils.ErrAttr(err))
 		return err
@@ -59,10 +59,10 @@ func DeleteTodoById(todoId primitive.ObjectID) error {
 	return nil
 }
 
-func FetchTodo(todoId primitive.ObjectID) (Todo, error) {
+func FetchTodo(cntxt context.Context, todoId primitive.ObjectID) (Todo, error) {
 	filter := bson.D{{Key: "_id", Value: todoId}}
 	var result Todo
-	err := todoCollection().FindOne(context.TODO(), filter).Decode(&result)
+	err := todoCollection().FindOne(cntxt, filter).Decode(&result)
 	if err != nil {
 		slog.Error("Error fetching a Todo", utils.ErrAttr(err))
 		return Todo{}, err
@@ -71,23 +71,47 @@ func FetchTodo(todoId primitive.ObjectID) (Todo, error) {
 	return result, nil
 }
 
-func FetchTodos(userId primitive.ObjectID) ([]Todo, int, error) {
+func FetchTodos(cntxt context.Context, userId primitive.ObjectID, filter string) ([]Todo, int, error) {
 	// todos := []Todo{
 	// 	{ID: primitive.NewObjectID(), UserID: userId, PlainText: "Buy groceries", RichText: "Buy groceries", IsCompleted: true},
 	// 	{ID: primitive.NewObjectID(), UserID: userId, PlainText: "Call mom", RichText: "Call mom", IsCompleted: false},
 	// 	{ID: primitive.NewObjectID(), UserID: userId, PlainText: "Write blog post", RichText: "Write blog post", IsCompleted: false},
 	// }
+	var bsonFilter bson.D
+	switch filter {
+	case "active":
+		bsonFilter = bson.D{
+			{
+				Key: "$and",
+				Value: bson.A{
+					bson.D{{Key: "user_id", Value: userId}},
+					bson.D{{Key: "is_completed", Value: false}},
+				},
+			},
+		}
+	case "completed":
+		bsonFilter = bson.D{
+			{
+				Key: "$and",
+				Value: bson.A{
+					bson.D{{Key: "user_id", Value: userId}},
+					bson.D{{Key: "is_completed", Value: true}},
+				},
+			},
+		}
+	default:
+		bsonFilter = bson.D{{Key: "user_id", Value: userId}}
+	}
 
-	filter := bson.D{{Key: "user_id", Value: userId}}
 	// Retrieves documents that match the query filer
-	cursor, err := todoCollection().Find(context.TODO(), filter)
+	cursor, err := todoCollection().Find(cntxt, bsonFilter)
 	if err != nil {
 		slog.Error("Error fetching todos", utils.ErrAttr(err))
 		return nil, 0, err
 	}
 
 	var results []Todo
-	if err = cursor.All(context.TODO(), &results); err != nil {
+	if err = cursor.All(cntxt, &results); err != nil {
 		slog.Error("Error reading the todos cursor", utils.ErrAttr(err))
 		return nil, 0, err
 	}
@@ -102,10 +126,10 @@ func FetchTodos(userId primitive.ObjectID) ([]Todo, int, error) {
 	return results, activeCount, nil
 }
 
-func ToggleTodoCompleted(todo Todo) error {
+func ToggleTodoCompleted(cntxt context.Context, todo Todo) error {
 	filter := bson.D{{Key: "_id", Value: todo.ID}}
 	update := bson.D{{Key: "$set", Value: bson.D{{Key: "is_completed", Value: !todo.IsCompleted}}}}
-	_, err := todoCollection().UpdateOne(context.TODO(), filter, update)
+	_, err := todoCollection().UpdateOne(cntxt, filter, update)
 	if err != nil {
 		slog.Error("Error updating todo", utils.ErrAttr(err))
 		return err
@@ -114,10 +138,10 @@ func ToggleTodoCompleted(todo Todo) error {
 	return nil
 }
 
-func ToggleAllCompleted(userId primitive.ObjectID, isCompleted bool) error {
+func ToggleAllCompleted(cntxt context.Context, userId primitive.ObjectID, isCompleted bool) error {
 	filter := bson.D{{Key: "user_id", Value: userId}}
 	update := bson.D{{Key: "$set", Value: bson.D{{Key: "is_completed", Value: isCompleted}}}}
-	_, err := todoCollection().UpdateMany(context.TODO(), filter, update)
+	_, err := todoCollection().UpdateMany(cntxt, filter, update)
 	if err != nil {
 		slog.Error("Error updating all todos", utils.ErrAttr(err))
 		return err
@@ -126,9 +150,9 @@ func ToggleAllCompleted(userId primitive.ObjectID, isCompleted bool) error {
 	return nil
 }
 
-func DeleteAllCompleted(userId primitive.ObjectID) error {
+func DeleteAllCompleted(cntxt context.Context, userId primitive.ObjectID) error {
 	filter := bson.D{{Key: "user_id", Value: userId}, {Key: "is_completed", Value: true}}
-	_, err := todoCollection().DeleteMany(context.TODO(), filter)
+	_, err := todoCollection().DeleteMany(cntxt, filter)
 	if err != nil {
 		slog.Error("Error deleting all completed todos", utils.ErrAttr(err))
 		return err

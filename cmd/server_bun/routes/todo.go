@@ -29,7 +29,7 @@ func (th *todoHandler) create(w http.ResponseWriter, req bunrouter.Request) erro
 		return err
 	}
 
-	err = models.CreateNewTodo(uid, newTodo, newTodo)
+	err = models.CreateNewTodo(req.Request.Context(), uid, newTodo, newTodo)
 	if err != nil {
 		return err
 	}
@@ -48,7 +48,7 @@ func (th *todoHandler) delete(w http.ResponseWriter, req bunrouter.Request) erro
 		return err
 	}
 
-	err = models.DeleteTodoById(tid)
+	err = models.DeleteTodoById(req.Request.Context(), tid)
 	if err != nil {
 		return err
 	}
@@ -67,12 +67,12 @@ func (th *todoHandler) toggleCompleted(w http.ResponseWriter, req bunrouter.Requ
 		return err
 	}
 
-	todo, err := models.FetchTodo(tid)
+	todo, err := models.FetchTodo(req.Request.Context(), tid)
 	if err != nil {
 		return err
 	}
 
-	err = models.ToggleTodoCompleted(todo)
+	err = models.ToggleTodoCompleted(req.Request.Context(), todo)
 	if err != nil {
 		return err
 	}
@@ -94,7 +94,7 @@ func (th *todoHandler) toggleAllCompleted(w http.ResponseWriter, req bunrouter.R
 	}
 	slog.Debug("count", slog.Int64("count", count))
 
-	err = models.ToggleAllCompleted(uid, count > 0)
+	err = models.ToggleAllCompleted(req.Request.Context(), uid, count > 0)
 	if err != nil {
 		return err
 	}
@@ -109,7 +109,7 @@ func (th *todoHandler) deleteCompleted(w http.ResponseWriter, req bunrouter.Requ
 		return err
 	}
 
-	err = models.DeleteAllCompleted(uid)
+	err = models.DeleteAllCompleted(req.Request.Context(), uid)
 	if err != nil {
 		return err
 	}
@@ -124,7 +124,7 @@ func renderTodoApp(w http.ResponseWriter, req bunrouter.Request, isFullPage bool
 		return err
 	}
 
-	todos, count, err := models.FetchTodos(uid)
+	todos, count, err := models.FetchTodos(req.Request.Context(), uid, "all")
 	if err != nil {
 		return err
 	}

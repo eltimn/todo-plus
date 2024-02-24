@@ -1,12 +1,14 @@
 package routes
 
-import "eltimn/todo-plus/web/layouts"
+import (
+	"eltimn/todo-plus/web/layouts"
+)
 
-templ ErrorPartial(err *appError) {
+templ ErrorPartial(err error) {
 	<div class="error">Error: { err.Error() }</div>
 }
 
-templ ErrorPage(err *appError) {
+templ ErrorPage(err error) {
 	@layouts.TailwindUILayout() {
 		@ErrorPartial(err)
 	}

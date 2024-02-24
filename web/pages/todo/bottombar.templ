@@ -7,13 +7,13 @@ templ bottombar(itemsLeft int) {
 		<div>{ strconv.Itoa(itemsLeft) } items left!</div>
 		<ul>
 			<li>
-				<a id="filter-link-all" href="#/" data-route="all">All</a>
+				<a id="filter-link-all" href="/todo?filter=all" data-route="all">All</a>
 			</li>
 			<li>
-				<a id="filter-link-active" href="#/active" data-route="active">Active</a>
+				<a id="filter-link-active" href="/todo?filter=active" data-route="active">Active</a>
 			</li>
 			<li>
-				<a id="filter-link-completed" href="#/completed" data-route="completed">Completed</a>
+				<a id="filter-link-completed" href="/todo?filter=completed" data-route="completed">Completed</a>
 			</li>
 		</ul>
 		<button hx-delete="/todo/delete-completed" hx-target="#todos" hx-swap="outerHTML">Remove completed</button>
