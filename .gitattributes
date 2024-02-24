@@ -1,0 +1,9 @@
+* text=auto eol=lf encoding=utf-8
+
+*.gif binary
+*.jpg binary
+*.png binary
+
+# Do not try and merge these files
+flake.lock -merge
+package-lock.json -merge
