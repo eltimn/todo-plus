@@ -49,7 +49,7 @@ type Router struct {
 }
 
 func NewRouter(opts *RouterOpts, mx ...Middleware) *Router {
-	if opts.HandleError != nil {
+	if opts != nil && opts.HandleError != nil {
 		routerOpts.Store(opts)
 	}
 	return &Router{ServeMux: &http.ServeMux{}, chain: mx}
