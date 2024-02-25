@@ -1,8 +1,10 @@
 package routes
 
 import (
-	"eltimn/todo-plus/app/server/router"
+	"eltimn/todo-plus/app/server/middleware"
 	"eltimn/todo-plus/models"
+	"eltimn/todo-plus/pkg/errs"
+	"eltimn/todo-plus/pkg/router"
 	"eltimn/todo-plus/web/pages/todo"
 	"log/slog"
 	"net/http"
@@ -11,7 +13,15 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-const userId string = "65cdb6ae82d84bf66d904c2c"
+var userId primitive.ObjectID
+
+func init() {
+	var err error
+	userId, err = primitive.ObjectIDFromHex("65cdb6ae82d84bf66d904c2c")
+	if err != nil {
+		slog.Error("Could not initialize userId", errs.ErrAttr(err))
+	}
+}
 
 type todoHandler struct{}
 
@@ -25,12 +35,7 @@ func (th *todoHandler) create(w http.ResponseWriter, req *http.Request) error {
 	newTodo := req.PostFormValue("new-todo")
 	slog.Debug("newTodo", slog.String("newTodo", newTodo))
 
-	uid, err := primitive.ObjectIDFromHex(userId)
-	if err != nil {
-		return err
-	}
-
-	err = models.CreateNewTodo(req.Context(), uid, newTodo, newTodo)
+	err := models.CreateNewTodo(req.Context(), userId, newTodo, newTodo)
 	if err != nil {
 		return err
 	}
@@ -81,11 +86,6 @@ func (th *todoHandler) toggleCompleted(w http.ResponseWriter, req *http.Request)
 }
 
 func (th *todoHandler) toggleAllCompleted(w http.ResponseWriter, req *http.Request) error {
-	uid, err := primitive.ObjectIDFromHex(userId)
-	if err != nil {
-		return err
-	}
-
 	c := req.PathValue("count")
 	count, err := strconv.ParseInt(c, 10, 64)
 	if err != nil {
@@ -93,7 +93,7 @@ func (th *todoHandler) toggleAllCompleted(w http.ResponseWriter, req *http.Reque
 	}
 	slog.Debug("count", slog.Int64("count", count))
 
-	err = models.ToggleAllCompleted(req.Context(), uid, count > 0)
+	err = models.ToggleAllCompleted(req.Context(), userId, count > 0)
 	if err != nil {
 		return err
 	}
@@ -103,12 +103,7 @@ func (th *todoHandler) toggleAllCompleted(w http.ResponseWriter, req *http.Reque
 }
 
 func (th *todoHandler) deleteCompleted(w http.ResponseWriter, req *http.Request) error {
-	uid, err := primitive.ObjectIDFromHex(userId)
-	if err != nil {
-		return err
-	}
-
-	err = models.DeleteAllCompleted(req.Context(), uid)
+	err := models.DeleteAllCompleted(req.Context(), userId)
 	if err != nil {
 		return err
 	}
@@ -118,17 +113,12 @@ func (th *todoHandler) deleteCompleted(w http.ResponseWriter, req *http.Request)
 }
 
 func renderTodoApp(w http.ResponseWriter, req *http.Request, isFullPage bool) error {
-	uid, err := primitive.ObjectIDFromHex(userId)
-	if err != nil {
-		return err
-	}
-
 	filter := req.URL.Query().Get("filter")
 	if filter == "" {
 		filter = "all"
 	}
 
-	todos, count, err := models.FetchTodos(req.Context(), uid, filter)
+	todos, count, err := models.FetchTodos(req.Context(), userId, filter)
 	if err != nil {
 		return err
 	}
@@ -146,7 +136,7 @@ func todoRoutes(rtr *router.Router) {
 	todoHandler := &todoHandler{}
 
 	rtr.Group(func(r *router.Router) {
-		r.Use(router.Mid(3))
+		r.Use(middleware.Mid(3))
 		r.Get("/todo", todoHandler.index)
 		r.Post("/todo/create", todoHandler.create)
 		r.Delete("/todo/{todoId}", todoHandler.delete)

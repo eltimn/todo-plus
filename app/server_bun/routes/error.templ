@@ -1,15 +1,15 @@
 package routes
 
 import (
-	"eltimn/todo-plus/utils"
+	"eltimn/todo-plus/pkg/errs"
 	"eltimn/todo-plus/web/layouts"
 )
 
-templ ErrorPartial(err utils.HttpError) {
+templ ErrorPartial(err errs.HttpError) {
 	<div class="error">Error: { err.Error() }</div>
 }
 
-templ ErrorPage(err utils.HttpError) {
+templ ErrorPage(err errs.HttpError) {
 	@layouts.ErrorLayout() {
 		@ErrorPartial(err)
 	}

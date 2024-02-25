@@ -10,118 +10,135 @@ output: "group"
 interval: 500ms
 
 tasks:
-  pre-build:
-    cmd: mkdir -p bin
+    pre-build:
+        cmd: mkdir -p bin
 
-  pre-css:
-    cmd: mkdir -p dist/assets/css
+    pre-css:
+        cmd: mkdir -p dist/assets/css
 
-  pre-js:
-    cmds:
-      - mkdir -p dist/assets/js
-      - cp web/assets/js/htmx.min.js dist/assets/js/htmx.min.js
-      - cp web/assets/js/htmx-response-targets.min.js dist/assets/js/htmx-response-targets.min.js
+    pre-js:
+        cmds:
+            - mkdir -p dist/assets/js
+            - cp web/assets/js/htmx.min.js dist/assets/js/htmx.min.js
+            - cp web/assets/js/htmx-response-targets.min.js dist/assets/js/htmx-response-targets.min.js
 
-  build:
-    desc: Build the go binary.
-    deps: [pre-build]
-    cmds:
-      - templ generate
-      - go build -o ./bin/server_bun cmd/server_bun/main.go
-      - go build -o ./bin/server cmd/server/main.go
+    copy-images:
+        cmds:
+            - mkdir -p dist/assets/img
+            - cp web/assets/img/* dist/assets/img/
 
-  css:
-    desc: Build the css.
-    deps: [pre-css]
-    vars:
-      OPTS: '{{default "" .OPTS}}'
-    cmd: tailwindcss -i ./web/assets/css/main.css -o dist/assets/css/main.css {{.OPTS}}
-    sources:
-      - web/assets/css/**/*.css
-    generates:
-      - dist/assets/css/main.css
+    build:
+        desc: Build the go binary.
+        deps: [pre-build]
+        cmds:
+            - templ generate
+            - go build -o ./bin/server_bun cmd/server_bun/main.go
+            - go build -o ./bin/server cmd/server/main.go
 
-  js:
-    desc: Build the js.
-    deps: [pre-js]
-    vars:
-      OPTS: '{{default "" .OPTS}}'
-    cmd: esbuild web/assets/js/main.js --outdir=dist/assets/js --bundle --target='esnext' --format=esm {{.OPTS}}
-    sources:
-      - web/assets/js/**/*.js
-    generates:
-      - dist/assets/js/main.js
+    css:
+        desc: Build the css.
+        deps: [pre-css]
+        vars:
+            OPTS: '{{default "" .OPTS}}'
+        cmd: tailwindcss -i ./web/assets/css/main.css -o dist/assets/css/main.css {{.OPTS}}
+        sources:
+            - web/assets/css/**/*.css
+        generates:
+            - dist/assets/css/main.css
 
-  dist:
-    desc: Build everything for distribution.
-    deps: [pre-build]
-    cmds:
-      - task: css
-        vars: { OPTS: --minify }
-      - task: js
-        vars: { OPTS: --minify }
-      - templ generate
-      - go build -o ./dist/server_bun cmd/server_bun/main.go
-      - go build -o ./dist/server cmd/server/main.go
+    js:
+        desc: Build the js.
+        deps: [pre-js]
+        vars:
+            OPTS: '{{default "" .OPTS}}'
+        cmd: esbuild web/assets/js/main.js --outdir=dist/assets/js --bundle --target='esnext' --format=esm {{.OPTS}}
+        sources:
+            - web/assets/js/**/*.js
+        generates:
+            - dist/assets/js/main.js
 
-  clean:
-    desc: Delete the bin, dist, and tmp dirs and all templ generated go files.
-    deps: [clean-go]
-    prompt: This will delete the bin, dist, and tmp dirs and all templ generated go files... Continue?
-    cmd: rm -rf dist
+    dist:
+        desc: Build everything for distribution.
+        deps: [pre-build]
+        cmds:
+            - task: css
+              vars: { OPTS: --minify }
+            - task: js
+              vars: { OPTS: --minify }
+            - templ generate
+            - go build -o ./dist/server_bun cmd/server_bun/main.go
+            - go build -o ./dist/server cmd/server/main.go
 
-  clean-css:
-    desc: Delete the dist/assets/css dir.
-    cmd: rm -rf dist/assets/css
+    clean:
+        desc: Delete the bin, dist, and tmp dirs and all templ generated go files.
+        deps: [clean-go, clean-task]
+        prompt: This will delete the bin, dist, and tmp dirs and all templ generated go files... Continue?
+        cmd: rm -rf dist
 
-  clean-js:
-    desc: Delete the dist/assets/js dir.
-    cmd: rm -rf dist/assets/js
+    clean-assets:
+        desc: Delete the dist/assets dir.
+        cmd: rm -rf dist/assets
 
-  clean-go:
-    desc: Delete the bin and tmp dirs and all templ generated go files.
-    cmds:
-      - rm -rf tmp
-      - rm -rf bin
-      - find . -type f -name '*_templ.go' -delete
+    clean-css:
+        desc: Delete the dist/assets/css dir.
+        cmd: rm -rf dist/assets/css
 
-  run:
-    desc: Run the server.
-    cmd: ./dist/server_bun
+    clean-js:
+        desc: Delete the dist/assets/js dir.
+        cmd: rm -rf dist/assets/js
 
-  # These use task's builtin watch feature. Need to use task's sources and generates features for this to work properly.
-  # Otherwise both tasks will run on changes when running these two tasks at the same time.
-  # If this doesn't work well, try this https://stackoverflow.com/a/77676428/359319
-  devcss:
-    desc: Watch and build the css using task's builtin watch feature.
-    watch: true
-    sources:
-      - "web/assets/css/**/*.css"
-    cmd: { task: css }
+    clean-img:
+        desc: Delete the dist/assets/img dir.
+        cmd: rm -rf dist/assets/img
 
-  devjs:
-    desc: Watch and build the js using task's builtin watch feature.
-    watch: true
-    sources:
-      - "web/assets/js/**/*.js"
-    cmd: { task: js }
+    clean-go:
+        desc: Delete the bin and tmp dirs and all templ generated go files.
+        cmds:
+            - rm -rf tmp
+            - rm -rf bin
+            - find . -type f -name '*_templ.go' -delete
 
-  # This causes both tasks to run
-  dev:
-    watch: true
-    sources:
-      - "web/assets/css/**/*.css"
-      - "web/assets/js/**/*.js"
-    cmds:
-      - task: css
-      - task: js
+    clean-task:
+        desc: Delete the task cache dir.
+        cmd: rm -rf .task
 
-  # These use each tool's watch feature. These need to have task's sources and generates features turned off.
-  # This doesn't work when running these two at the same time, the first task never returns, so the second task never runs.
-  devcss2:
-    desc: Watch and build the css using tailwindcss's watch feature.
-    cmd: { task: css, vars: { OPTS: --watch } }
+    run:
+        desc: Run the server.
+        cmd: ./dist/server_bun
 
-  devjs2:
-    desc: Watch and build the js using esbuild's watch feature.
-    cmd: { task: js, vars: { OPTS: --watch } }
+    # These use task's builtin watch feature. Need to use task's sources and generates features for this to work properly.
+    # Otherwise both tasks will run on changes when running these two tasks at the same time.
+    # If this doesn't work well, try this https://stackoverflow.com/a/77676428/359319
+    devcss:
+        desc: Watch and build the css using task's builtin watch feature.
+        watch: true
+        sources:
+            - "web/assets/css/**/*.css"
+        cmd: { task: css }
+
+    devjs:
+        desc: Watch and build the js using task's builtin watch feature.
+        watch: true
+        sources:
+            - "web/assets/js/**/*.js"
+        cmd: { task: js }
+
+    # This causes both tasks to run
+    dev:
+        watch: true
+        sources:
+            - "web/assets/css/**/*.css"
+            - "web/assets/js/**/*.js"
+        cmds:
+            - task: css
+            - task: js
+
+    # These use each tool's watch feature. These need to have task's sources and generates features turned off.
+    # This doesn't work when running these two at the same time, the first task never returns, so the second task never runs.
+    devcss2:
+        desc: Watch and build the css using tailwindcss's watch feature.
+        cmd: { task: css, vars: { OPTS: --watch } }
+
+    devjs2:
+        desc: Watch and build the js using esbuild's watch feature.
+        cmd: { task: js, vars: { OPTS: --watch } }

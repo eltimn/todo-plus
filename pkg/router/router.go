@@ -1,7 +1,6 @@
 package router
 
 import (
-	"fmt"
 	"net/http"
 	"slices"
 	"sync/atomic"
@@ -9,19 +8,22 @@ import (
 
 // router options
 type HttpErrorHandler func(http.ResponseWriter, *http.Request, error)
-type RouterOpts struct {
+type RouterConfig struct {
 	HandleError HttpErrorHandler
 }
 
-var routerOpts atomic.Pointer[RouterOpts]
+type RouterOption func(*RouterConfig)
 
-func init() {
-	routerOpts.Store(&RouterOpts{HandleError: defaultHttpErrorHandler})
+func WithErrorHandler(fn HttpErrorHandler) RouterOption {
+	return func(cfg *RouterConfig) {
+		cfg.HandleError = fn
+	}
 }
 
-// Set the error handler
-func SetRouterOpts(opts RouterOpts) {
-	routerOpts.Store(&opts)
+var routerCfg atomic.Pointer[RouterConfig]
+
+func init() {
+	routerCfg.Store(&RouterConfig{HandleError: defaultHttpErrorHandler})
 }
 
 // An HTTP handler that allows for returning errors
@@ -30,7 +32,7 @@ type HttpHandler func(http.ResponseWriter, *http.Request) error
 // ServeHTTP implements the http.Handler interface for HttpHandler
 func (fn HttpHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if err := fn(w, req); err != nil {
-		opts := routerOpts.Load()
+		opts := routerCfg.Load()
 		opts.HandleError(w, req, err)
 	}
 }
@@ -41,18 +43,26 @@ func defaultHttpErrorHandler(w http.ResponseWriter, req *http.Request, err error
 }
 
 // https://gist.github.com/alexaandru/747f9d7bdfb1fa35140b359bf23fa820
-// Router is a simple HTTP router that wraps the standard library's ServeMux
 type Middleware func(http.Handler) http.Handler
+
+// Router is a simple HTTP router that wraps the standard library's ServeMux
 type Router struct {
 	*http.ServeMux
 	chain []Middleware
 }
 
-func NewRouter(opts *RouterOpts, mx ...Middleware) *Router {
-	if opts != nil && opts.HandleError != nil {
-		routerOpts.Store(opts)
+func NewRouter(opts ...RouterOption) *Router {
+
+	ro := RouterConfig{
+		HandleError: defaultHttpErrorHandler,
 	}
-	return &Router{ServeMux: &http.ServeMux{}, chain: mx}
+	for _, opt := range opts {
+		opt(&ro)
+	}
+
+	routerCfg.Store(&ro)
+
+	return &Router{ServeMux: &http.ServeMux{}, chain: []Middleware{}}
 }
 
 func (r *Router) Use(mx ...Middleware) {
@@ -105,14 +115,4 @@ func (r *Router) wrap(fn HttpHandler, mx []Middleware) (out http.Handler) {
 	}
 
 	return
-}
-
-func Mid(i int) Middleware {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			fmt.Println("mid", i, "start")
-			next.ServeHTTP(w, r)
-			fmt.Println("mid", i, "done")
-		})
-	}
 }

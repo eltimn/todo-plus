@@ -1,7 +1,7 @@
 package routes
 
 import (
-	"eltimn/todo-plus/utils"
+	"eltimn/todo-plus/pkg/errs"
 	"log/slog"
 	"net/http"
 
@@ -37,18 +37,18 @@ func webErrorHandler(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 		switch err := err.(type) {
 		case nil:
 			// no error
-		case utils.HttpError: // already a HttpError
+		case errs.HttpError: // already a HttpError
 			renderWebError(w, req, err)
 		default:
-			renderWebError(w, req, utils.NewHttpError(err))
+			renderWebError(w, req, errs.NewHttpError(err))
 		}
 
 		return err // return the err in case there other middlewares
 	}
 }
 
-func renderWebError(w http.ResponseWriter, req bunrouter.Request, httpErr utils.HttpError) {
-	slog.Error(httpErr.Error(), utils.ErrAttr(httpErr))
+func renderWebError(w http.ResponseWriter, req bunrouter.Request, httpErr errs.HttpError) {
+	slog.Error(httpErr.Error(), errs.ErrAttr(httpErr))
 
 	w.WriteHeader(httpErr.StatusCode)
 
@@ -62,7 +62,7 @@ func renderWebError(w http.ResponseWriter, req bunrouter.Request, httpErr utils.
 }
 
 func NotFoundHandler(w http.ResponseWriter, req bunrouter.Request) error {
-	err := utils.NotFoundError
+	err := errs.NotFoundError
 
 	renderWebError(w, req, err)
 

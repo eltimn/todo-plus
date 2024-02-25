@@ -1,7 +1,8 @@
-package utils
+package errs
 
 import (
 	"io"
+	"log/slog"
 	"net/http"
 )
 
@@ -46,4 +47,8 @@ var NotFoundError = HttpError{
 	StatusCode: http.StatusNotFound,
 	Code:       "not_found",
 	Message:    "Page Not Found",
+}
+
+func ErrAttr(err error) slog.Attr {
+	return slog.Any("error", err)
 }

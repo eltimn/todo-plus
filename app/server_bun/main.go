@@ -5,7 +5,7 @@ import (
 	"eltimn/todo-plus/app/server_bun/routes"
 	"eltimn/todo-plus/logging"
 	"eltimn/todo-plus/models"
-	"eltimn/todo-plus/utils"
+	"eltimn/todo-plus/pkg/errs"
 	"errors"
 	"log/slog"
 	"net"
@@ -37,7 +37,7 @@ func main() {
 
 	// init mongodb
 	if err := models.InitMongoDB(mongoUri); err != nil {
-		slog.Error("Error connecting to MongoDB", utils.ErrAttr(err))
+		slog.Error("Error connecting to MongoDB", errs.ErrAttr(err))
 		os.Exit(1)
 	}
 	slog.Info("Connected to MongoDB", slog.String("uri", mongoUri))
@@ -55,7 +55,7 @@ func main() {
 	// setup the server
 	httpLn, err := net.Listen("tcp", listenAddress)
 	if err != nil {
-		slog.Error("Error setting listen address", utils.ErrAttr(err))
+		slog.Error("Error setting listen address", errs.ErrAttr(err))
 		os.Exit(1)
 	}
 
@@ -74,7 +74,7 @@ func main() {
 
 	go func() {
 		if err := httpServer.Serve(httpLn); !errors.Is(err, http.ErrServerClosed) {
-			slog.Error("HTTP server error", utils.ErrAttr(err))
+			slog.Error("HTTP server error", errs.ErrAttr(err))
 		}
 	}()
 
@@ -88,11 +88,11 @@ func main() {
 	// Graceful shutdown.
 	exitCode := 0
 	if err := httpServer.Shutdown(ctx); err != nil {
-		slog.Error("HTTP shutdown error", utils.ErrAttr(err))
+		slog.Error("HTTP shutdown error", errs.ErrAttr(err))
 		exitCode = 1
 	}
 	if err := models.ShutdownMongoDB(); err != nil {
-		slog.Error("Error disconnecting from MongoDB", utils.ErrAttr(err))
+		slog.Error("Error disconnecting from MongoDB", errs.ErrAttr(err))
 		exitCode = 1
 	}
 	slog.Info("Graceful shutdown complete.")

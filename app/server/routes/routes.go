@@ -1,8 +1,9 @@
 package routes
 
 import (
-	"eltimn/todo-plus/app/server/router"
-	"eltimn/todo-plus/utils"
+	"eltimn/todo-plus/app/server/middleware"
+	"eltimn/todo-plus/pkg/errs"
+	"eltimn/todo-plus/pkg/router"
 	"eltimn/todo-plus/web/pages"
 	"fmt"
 	"log/slog"
@@ -11,8 +12,9 @@ import (
 )
 
 func Routes() *router.Router {
-	opts := router.RouterOpts{HandleError: handleHttpError}
-	rtr := router.NewRouter(&opts, router.Mid(0))
+	rtr := router.NewRouter(router.WithErrorHandler(handleHttpError))
+	rtr.Use(middleware.Mid(0))
+	rtr.Use(middleware.SessionCookie(middleware.SessionCookieWithSecure(false)))
 
 	// serve static files
 	fs := http.FileServer(http.Dir("./dist/assets"))
@@ -41,7 +43,7 @@ func helloHandler(w http.ResponseWriter, req *http.Request) error {
 func homeHandler(w http.ResponseWriter, req *http.Request) {
 	slog.Debug("URL", slog.String("url", req.URL.Path))
 	if req.URL.Path != "/" || req.Method != http.MethodGet {
-		handleHttpError(w, req, utils.NotFoundError)
+		handleHttpError(w, req, errs.NotFoundError)
 		return
 	}
 
@@ -56,17 +58,17 @@ func nowHandler(w http.ResponseWriter, req *http.Request) error {
 }
 
 func handleHttpError(w http.ResponseWriter, req *http.Request, err error) {
-	slog.Error(err.Error(), utils.ErrAttr(err))
+	slog.Error(err.Error(), errs.ErrAttr(err))
 
 	// Check if the error was an HttpError or a regular error.
-	var e utils.HttpError
+	var e errs.HttpError
 	switch err := err.(type) {
 	case nil:
-		e = utils.NewHttpError(fmt.Errorf("nil error"))
-	case utils.HttpError: // already an HttpError
+		e = errs.NewHttpError(fmt.Errorf("nil error"))
+	case errs.HttpError: // already an HttpError
 		e = err
 	default:
-		e = utils.NewHttpError(err)
+		e = errs.NewHttpError(err)
 	}
 
 	w.WriteHeader(e.StatusCode)

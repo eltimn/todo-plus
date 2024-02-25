@@ -2,7 +2,7 @@ package models
 
 import (
 	"context"
-	"eltimn/todo-plus/utils"
+	"eltimn/todo-plus/pkg/errs"
 	"log/slog"
 	"time"
 
@@ -39,7 +39,7 @@ func CreateNewTodo(cntxt context.Context, userId primitive.ObjectID, plainText, 
 	defer cancel()
 	res, err := todoCollection().InsertOne(ctx, newTodo)
 	if err != nil {
-		slog.Error("Error creating new Todo", utils.ErrAttr(err))
+		slog.Error("Error creating new Todo", errs.ErrAttr(err))
 		return err
 	}
 	id := res.InsertedID
@@ -52,7 +52,7 @@ func DeleteTodoById(cntxt context.Context, todoId primitive.ObjectID) error {
 	filter := bson.D{{Key: "_id", Value: todoId}}
 	_, err := todoCollection().DeleteOne(cntxt, filter)
 	if err != nil {
-		slog.Error("Error deleting a Todo", utils.ErrAttr(err))
+		slog.Error("Error deleting a Todo", errs.ErrAttr(err))
 		return err
 	}
 
@@ -64,7 +64,7 @@ func FetchTodo(cntxt context.Context, todoId primitive.ObjectID) (Todo, error) {
 	var result Todo
 	err := todoCollection().FindOne(cntxt, filter).Decode(&result)
 	if err != nil {
-		slog.Error("Error fetching a Todo", utils.ErrAttr(err))
+		slog.Error("Error fetching a Todo", errs.ErrAttr(err))
 		return Todo{}, err
 	}
 
@@ -106,13 +106,13 @@ func FetchTodos(cntxt context.Context, userId primitive.ObjectID, filter string)
 	// Retrieves documents that match the query filer
 	cursor, err := todoCollection().Find(cntxt, bsonFilter)
 	if err != nil {
-		slog.Error("Error fetching todos", utils.ErrAttr(err))
+		slog.Error("Error fetching todos", errs.ErrAttr(err))
 		return nil, 0, err
 	}
 
 	var results []Todo
 	if err = cursor.All(cntxt, &results); err != nil {
-		slog.Error("Error reading the todos cursor", utils.ErrAttr(err))
+		slog.Error("Error reading the todos cursor", errs.ErrAttr(err))
 		return nil, 0, err
 	}
 
@@ -131,7 +131,7 @@ func ToggleTodoCompleted(cntxt context.Context, todo Todo) error {
 	update := bson.D{{Key: "$set", Value: bson.D{{Key: "is_completed", Value: !todo.IsCompleted}}}}
 	_, err := todoCollection().UpdateOne(cntxt, filter, update)
 	if err != nil {
-		slog.Error("Error updating todo", utils.ErrAttr(err))
+		slog.Error("Error updating todo", errs.ErrAttr(err))
 		return err
 	}
 
@@ -143,7 +143,7 @@ func ToggleAllCompleted(cntxt context.Context, userId primitive.ObjectID, isComp
 	update := bson.D{{Key: "$set", Value: bson.D{{Key: "is_completed", Value: isCompleted}}}}
 	_, err := todoCollection().UpdateMany(cntxt, filter, update)
 	if err != nil {
-		slog.Error("Error updating all todos", utils.ErrAttr(err))
+		slog.Error("Error updating all todos", errs.ErrAttr(err))
 		return err
 	}
 
@@ -154,7 +154,7 @@ func DeleteAllCompleted(cntxt context.Context, userId primitive.ObjectID) error 
 	filter := bson.D{{Key: "user_id", Value: userId}, {Key: "is_completed", Value: true}}
 	_, err := todoCollection().DeleteMany(cntxt, filter)
 	if err != nil {
-		slog.Error("Error deleting all completed todos", utils.ErrAttr(err))
+		slog.Error("Error deleting all completed todos", errs.ErrAttr(err))
 		return err
 	}
 
