@@ -2,7 +2,6 @@ package models
 
 import (
 	"context"
-	"log/slog"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -33,11 +32,5 @@ func InitMongoDB(uri string) error {
 }
 
 func ShutdownMongoDB() error {
-	err := client.Disconnect(mongoCtx)
-	if err != nil {
-		return err
-	}
-
-	slog.Info("Disconnected from MongoDB")
-	return nil
+	return client.Disconnect(mongoCtx)
 }

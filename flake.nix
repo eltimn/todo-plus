@@ -6,7 +6,10 @@
     nixpkgs.url = "nixpkgs/nixos-unstable";
     # nixpkgs-unstable.url = "nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
-    templ.url = "github:a-h/templ";
+    templ = {
+      url = "github:a-h/templ";
+      inputs = { nixpkgs.follows = "nixpkgs"; };
+    };
   };
 
   outputs = { self, nixpkgs, flake-utils, templ }:
@@ -23,6 +26,7 @@
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
             air
+            atlas
             esbuild
             go-task
             go_1_22

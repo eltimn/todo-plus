@@ -2,160 +2,207 @@ package models
 
 import (
 	"context"
-	"eltimn/todo-plus/pkg/errs"
+	"database/sql"
+	"fmt"
 	"log/slog"
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// pwd: 3ClyP69h9ax1zNE
+type TodoModel struct {
+	db      *sql.DB
+	timeout time.Duration
+}
 
-func todoCollection() *mongo.Collection {
-	return mainDB().Collection("todos")
+func NewTodoModel(db *sql.DB, timeout time.Duration) *TodoModel {
+	return &TodoModel{db: db, timeout: timeout}
 }
 
 type Todo struct {
-	ID          primitive.ObjectID `bson:"_id,omitempty"`
-	UserID      primitive.ObjectID `bson:"user_id,omitempty"`
-	PlainText   string             `bson:"plain_text,omitempty"`
-	RichText    string             `bson:"rich_text,omitempty"`
-	IsCompleted bool               `bson:"is_completed"`
+	Id          int64
+	UserId      int64
+	PlainText   string
+	RichText    string
+	IsCompleted bool
 }
 
-func CreateNewTodo(cntxt context.Context, userId primitive.ObjectID, plainText, richText string) error {
+type CreateTodoInput struct {
+	UserId    int64
+	PlainText string
+	RichText  string
+}
+
+func (model *TodoModel) CreateNewTodo(c context.Context, input *CreateTodoInput) (*Todo, error) {
+	ctx, cancel := context.WithTimeout(c, model.timeout)
+	defer cancel()
+
+	var lastInsertId int
+	query := "INSERT INTO todos (user_id, plain_text, rich_text, is_completed) VALUES ($1, $2, $3, $4) RETURNING id"
+	err := model.db.QueryRowContext(ctx, query, input.UserId, input.PlainText, input.RichText, false).Scan(&lastInsertId)
+	if err != nil {
+		return &Todo{}, err
+	}
+
 	newTodo := Todo{
-		UserID:      userId,
-		PlainText:   plainText,
-		RichText:    richText,
+		Id:          int64(lastInsertId),
+		UserId:      input.UserId,
+		PlainText:   input.PlainText,
+		RichText:    input.RichText,
 		IsCompleted: false,
 	}
 
 	slog.Info("newTodo", slog.Any("newTodo", newTodo))
 
-	ctx, cancel := context.WithTimeout(cntxt, 5*time.Second)
+	return &newTodo, nil
+}
+
+func (model *TodoModel) DeleteTodoById(c context.Context, todoId int64) error {
+	ctx, cancel := context.WithTimeout(c, model.timeout)
 	defer cancel()
-	res, err := todoCollection().InsertOne(ctx, newTodo)
+
+	result, err := model.db.ExecContext(ctx, "DELETE FROM todos WHERE id = ?", todoId)
 	if err != nil {
-		slog.Error("Error creating new Todo", errs.ErrAttr(err))
-		return err
+		return fmt.Errorf("error deleting todo: %w", err)
 	}
-	id := res.InsertedID
-	slog.Info("InsertedID", slog.Any("id", id))
 
-	return nil
-}
-
-func DeleteTodoById(cntxt context.Context, todoId primitive.ObjectID) error {
-	filter := bson.D{{Key: "_id", Value: todoId}}
-	_, err := todoCollection().DeleteOne(cntxt, filter)
+	rows, err := result.RowsAffected()
 	if err != nil {
-		slog.Error("Error deleting a Todo", errs.ErrAttr(err))
-		return err
+		return fmt.Errorf("error getting number of rows affected: %w", err)
+	}
+	if rows != 1 {
+		// warn, but continue execution
+		slog.Warn("expected to affect 1 row, affected %d", rows)
 	}
 
 	return nil
 }
 
-func FetchTodo(cntxt context.Context, todoId primitive.ObjectID) (Todo, error) {
-	filter := bson.D{{Key: "_id", Value: todoId}}
-	var result Todo
-	err := todoCollection().FindOne(cntxt, filter).Decode(&result)
+func (model *TodoModel) FetchTodo(c context.Context, todoId int64) (*Todo, error) {
+	ctx, cancel := context.WithTimeout(c, model.timeout)
+	defer cancel()
+
+	todo := Todo{}
+	query := "SELECT id, user_id, plain_text, rich_text, is_completed FROM todos WHERE id = $1"
+	err := model.db.QueryRowContext(ctx, query, todoId).Scan(&todo.Id, &todo.UserId, &todo.PlainText, &todo.RichText, &todo.IsCompleted)
 	if err != nil {
-		slog.Error("Error fetching a Todo", errs.ErrAttr(err))
-		return Todo{}, err
+		return &Todo{}, fmt.Errorf("error fetching todo: %w", err)
 	}
 
-	return result, nil
+	return &todo, nil
 }
 
-func FetchTodos(cntxt context.Context, userId primitive.ObjectID, filter string) ([]Todo, int, error) {
-	// todos := []Todo{
-	// 	{ID: primitive.NewObjectID(), UserID: userId, PlainText: "Buy groceries", RichText: "Buy groceries", IsCompleted: true},
-	// 	{ID: primitive.NewObjectID(), UserID: userId, PlainText: "Call mom", RichText: "Call mom", IsCompleted: false},
-	// 	{ID: primitive.NewObjectID(), UserID: userId, PlainText: "Write blog post", RichText: "Write blog post", IsCompleted: false},
-	// }
-	var bsonFilter bson.D
+func (model *TodoModel) FetchTodos(c context.Context, userId int64, filter string) ([]Todo, int, error) {
+	ctx, cancel := context.WithTimeout(c, model.timeout)
+	defer cancel()
+
+	var whereClause string
 	switch filter {
 	case "active":
-		bsonFilter = bson.D{
-			{
-				Key: "$and",
-				Value: bson.A{
-					bson.D{{Key: "user_id", Value: userId}},
-					bson.D{{Key: "is_completed", Value: false}},
-				},
-			},
-		}
+		whereClause = "WHERE user_id = $1 AND is_completed = false"
 	case "completed":
-		bsonFilter = bson.D{
-			{
-				Key: "$and",
-				Value: bson.A{
-					bson.D{{Key: "user_id", Value: userId}},
-					bson.D{{Key: "is_completed", Value: true}},
-				},
-			},
-		}
+		whereClause = "WHERE user_id = $1 AND is_completed = true"
 	default:
-		bsonFilter = bson.D{{Key: "user_id", Value: userId}}
+		whereClause = "WHERE user_id = $1"
 	}
 
-	// Retrieves documents that match the query filer
-	cursor, err := todoCollection().Find(cntxt, bsonFilter)
+	qry := fmt.Sprintf("SELECT id, user_id, plain_text, rich_text, is_completed FROM todos %s", whereClause)
+
+	rows, err := model.db.QueryContext(ctx, qry, userId)
 	if err != nil {
-		slog.Error("Error fetching todos", errs.ErrAttr(err))
 		return nil, 0, err
 	}
+	defer rows.Close()
+	todos := make([]Todo, 0)
 
-	var results []Todo
-	if err = cursor.All(cntxt, &results); err != nil {
-		slog.Error("Error reading the todos cursor", errs.ErrAttr(err))
+	for rows.Next() {
+		todo := Todo{}
+		if err := rows.Scan(&todo.Id, &todo.UserId, &todo.PlainText, &todo.RichText, &todo.IsCompleted); err != nil {
+			// Check for a scan error.
+			// Query rows will be closed with defer.
+			return nil, 0, err
+		}
+		todos = append(todos, todo)
+	}
+	// If the database is being written to, ensure to check for Close
+	// errors that may be returned from the driver. The query may
+	// encounter an auto-commit error and be forced to rollback changes.
+	rerr := rows.Close()
+	if rerr != nil {
+		return nil, 0, rerr
+	}
+
+	// Rows.Err will report the last error encountered by Rows.Scan.
+	if err := rows.Err(); err != nil {
 		return nil, 0, err
 	}
 
 	var activeCount int
-	for i := range results {
-		if !results[i].IsCompleted {
+	for i := range todos {
+		if !todos[i].IsCompleted {
 			activeCount++
 		}
 	}
 
-	return results, activeCount, nil
+	return todos, activeCount, nil
 }
 
-func ToggleTodoCompleted(cntxt context.Context, todo Todo) error {
-	filter := bson.D{{Key: "_id", Value: todo.ID}}
-	update := bson.D{{Key: "$set", Value: bson.D{{Key: "is_completed", Value: !todo.IsCompleted}}}}
-	_, err := todoCollection().UpdateOne(cntxt, filter, update)
+func (model *TodoModel) ToggleTodoCompleted(c context.Context, todo *Todo) error {
+	ctx, cancel := context.WithTimeout(c, model.timeout)
+	defer cancel()
+
+	result, err := model.db.ExecContext(ctx, "UPDATE todos SET is_completed = $1 WHERE id = $2", !todo.IsCompleted, todo.Id)
 	if err != nil {
-		slog.Error("Error updating todo", errs.ErrAttr(err))
-		return err
+		return fmt.Errorf("error toggling todo completed: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("[toggling todo completed] - error getting number of rows affected: %w", err)
+	}
+	if rows != 1 {
+		// warn, but continue execution
+		slog.Warn("[toggling todo completed] - expected to affect 1 row, affected %d", rows)
 	}
 
 	return nil
 }
 
-func ToggleAllCompleted(cntxt context.Context, userId primitive.ObjectID, isCompleted bool) error {
-	filter := bson.D{{Key: "user_id", Value: userId}}
-	update := bson.D{{Key: "$set", Value: bson.D{{Key: "is_completed", Value: isCompleted}}}}
-	_, err := todoCollection().UpdateMany(cntxt, filter, update)
+func (model *TodoModel) ToggleAllCompleted(c context.Context, userId int64, isCompleted bool) error {
+	ctx, cancel := context.WithTimeout(c, model.timeout)
+	defer cancel()
+
+	result, err := model.db.ExecContext(ctx, "UPDATE todos SET is_completed = $1 WHERE id = $2", isCompleted, userId)
 	if err != nil {
-		slog.Error("Error updating all todos", errs.ErrAttr(err))
-		return err
+		return fmt.Errorf("error toggling all todos: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("[toggling all todos] - error getting number of rows affected: %w", err)
+	}
+	if rows < 1 {
+		// warn, but continue execution
+		slog.Warn("[toggling all todos] - no rows affected")
 	}
 
 	return nil
 }
 
-func DeleteAllCompleted(cntxt context.Context, userId primitive.ObjectID) error {
-	filter := bson.D{{Key: "user_id", Value: userId}, {Key: "is_completed", Value: true}}
-	_, err := todoCollection().DeleteMany(cntxt, filter)
+func (model *TodoModel) DeleteAllCompleted(c context.Context, userId int64) error {
+	ctx, cancel := context.WithTimeout(c, model.timeout)
+	defer cancel()
+
+	result, err := model.db.ExecContext(ctx, "DELETE FROM todos WHERE user_id = $1 AND is_completed = true", userId)
 	if err != nil {
-		slog.Error("Error deleting all completed todos", errs.ErrAttr(err))
-		return err
+		return fmt.Errorf("error deleting all completed todos: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("[deleting all completed todos] - error getting number of rows affected: %w", err)
+	}
+	if rows < 1 {
+		// warn, but continue execution
+		slog.Warn("[deleting all completed todos] - no rows affected")
 	}
 
 	return nil

@@ -14,6 +14,7 @@ import (
 	"eltimn/todo-plus/logging"
 	"eltimn/todo-plus/models"
 	"eltimn/todo-plus/pkg/errs"
+	"eltimn/todo-plus/pkg/util"
 )
 
 func main() {
@@ -22,25 +23,24 @@ func main() {
 	slog.Info("Configured logging", slog.String("level", logLevel), slog.String("handler", logHandler))
 
 	// grab some env vars
-	mongoUri, ok := os.LookupEnv("MONGODB_URI")
-	if !ok {
-		mongoUri = "mongodb://localhost:27017/todo"
-	}
+	listenAddress := util.GetEnv("WEB_LISTEN", ":8989")
+	dbUrl := util.GetEnv("DB_URL", "http://127.0.0.1:5000")
 
-	listenAddress, ok := os.LookupEnv("WEB_LISTEN")
-	if !ok {
-		listenAddress = ":8989"
-	}
-
-	// init mongodb
-	if err := models.InitMongoDB(mongoUri); err != nil {
-		slog.Error("Error connecting to MongoDB", errs.ErrAttr(err))
+	// init libsql db
+	database, err := models.OpenDB(dbUrl)
+	if err != nil {
+		slog.Error("Error connecting to libsql", errs.ErrAttr(err))
 		os.Exit(1)
 	}
-	slog.Info("Connected to MongoDB", slog.String("uri", mongoUri))
+
+	slog.Info("Connected to libsql", slog.String("url", dbUrl))
+
+	routeEnv := routes.RouteEnv{
+		Users: models.NewUserModel(database, 5*time.Second),
+	}
 
 	// create router
-	router := routes.Routes()
+	router := routes.Routes(&routeEnv)
 
 	// start server
 	// https://dev.to/mokiat/proper-http-shutdown-in-go-3fji
@@ -71,8 +71,8 @@ func main() {
 		slog.Error("HTTP shutdown error", errs.ErrAttr(err))
 		exitCode = 1
 	}
-	if err := models.ShutdownMongoDB(); err != nil {
-		slog.Error("Error disconnecting from MongoDB", errs.ErrAttr(err))
+	if err := database.Close(); err != nil {
+		slog.Error("Error closing database", errs.ErrAttr(err))
 		exitCode = 1
 	}
 	slog.Info("Graceful shutdown complete.")

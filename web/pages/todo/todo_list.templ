@@ -90,9 +90,9 @@ templ todoList(items []models.Todo, activeCount int) {
 			<tbody>
 				for _, item := range items {
 					<tr>
-						<td><input type="checkbox" class="checkbox" checked?={ item.IsCompleted } hx-patch={ fmt.Sprintf("/todo/toggle-completed/%s", item.ID.Hex()) } hx-target="#todos" hx-swap="outerHTML"/></td>
+						<td><input type="checkbox" class="checkbox" checked?={ item.IsCompleted } hx-patch={ fmt.Sprintf("/todo/toggle-completed/%d", item.Id) } hx-target="#todos" hx-swap="outerHTML"/></td>
 						<td>{ item.PlainText }</td>
-						<td><button title="Remove Todo" hx-delete={ fmt.Sprintf("/todo/%s", item.ID.Hex()) } hx-target="#todos" hx-swap="outerHTML" hx-confirm="Are you sure you want to remove this todo?">X</button></td>
+						<td><button title="Remove Todo" hx-delete={ fmt.Sprintf("/todo/%d", item.Id) } hx-target="#todos" hx-swap="outerHTML" hx-confirm="Are you sure you want to remove this todo?">X</button></td>
 					</tr>
 				}
 			</tbody>

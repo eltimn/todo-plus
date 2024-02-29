@@ -1,7 +1,7 @@
 package routes
 
 import (
-	"eltimn/todo-plus/models"
+	"eltimn/todo-plus/app/server_bun/models"
 	"eltimn/todo-plus/web/pages/todo"
 	"log/slog"
 	"net/http"

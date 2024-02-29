@@ -35,6 +35,10 @@ tasks:
             - go build -o ./bin/server_bun cmd/server_bun/main.go
             - go build -o ./bin/server cmd/server/main.go
 
+    test:
+        desc: Run the tests.
+        cmd: go test -v ./...
+
     css:
         desc: Build the css.
         deps: [pre-css]
@@ -142,3 +146,22 @@ tasks:
     devjs2:
         desc: Watch and build the js using esbuild's watch feature.
         cmd: { task: js, vars: { OPTS: --watch } }
+
+    db-start:
+        desc: Start the database.
+        cmd: turso dev --db-file db-data/local.db --port $TURSO_PORT
+        interactive: true
+
+    db-shell:
+        desc: Open a shell to the database.
+        cmd: turso db shell http://$TURSO_IP:$TURSO_PORT
+        interactive: true
+
+    # atlas-inspect:
+    #     desc: Generate a db schema hcl file form the current database.
+    #     cmd: atlas schema inspect -u "libsql+ws://$TURSO_IP:$TURSO_PORT" --ouptput atlas.hcl
+
+    atlas-apply-dev:
+        desc: Apply the db schema hcl file to the local dev database.
+        cmd: atlas schema apply --to file://models/atlas.hcl -u "libsql+ws://$TURSO_IP:$TURSO_PORT"
+        interactive: true

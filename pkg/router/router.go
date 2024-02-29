@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 )
 
-// router options
+// router config
 type HttpErrorHandler func(http.ResponseWriter, *http.Request, error)
 type RouterConfig struct {
 	HandleError HttpErrorHandler

@@ -2,6 +2,7 @@ package routes
 
 import (
 	"eltimn/todo-plus/app/server/middleware"
+	"eltimn/todo-plus/models"
 	"eltimn/todo-plus/pkg/errs"
 	"eltimn/todo-plus/pkg/router"
 	"eltimn/todo-plus/web/pages"
@@ -11,7 +12,12 @@ import (
 	"time"
 )
 
-func Routes() *router.Router {
+type RouteEnv struct {
+	Users *models.UserModel
+	Todos *models.TodoModel
+}
+
+func Routes(env *RouteEnv) *router.Router {
 	rtr := router.NewRouter(router.WithErrorHandler(handleHttpError))
 	rtr.Use(middleware.Mid(0))
 	rtr.Use(middleware.SessionCookie(middleware.SessionCookieWithSecure(false)))
@@ -20,7 +26,8 @@ func Routes() *router.Router {
 	fs := http.FileServer(http.Dir("./dist/assets"))
 	rtr.ServeMux.Handle("GET /assets/", http.StripPrefix("/assets/", fs))
 
-	todoRoutes(rtr)
+	todoRoutes(rtr, env.Todos)
+	userRoutes(rtr, env.Users)
 
 	rtr.Get("/hello/{name}", helloHandler)
 	rtr.Get("/now", nowHandler)
