@@ -32,7 +32,6 @@ tasks:
         deps: [pre-build]
         cmds:
             - templ generate
-            - go build -o ./bin/server_bun cmd/server_bun/main.go
             - go build -o ./bin/server cmd/server/main.go
 
     test:
@@ -70,8 +69,7 @@ tasks:
             - task: js
               vars: { OPTS: --minify }
             - templ generate
-            - go build -o ./dist/server_bun cmd/server_bun/main.go
-            - go build -o ./dist/server cmd/server/main.go
+            - go build -o ./bin/server cmd/server/main.go
 
     clean:
         desc: Delete the bin, dist, and tmp dirs and all templ generated go files.
@@ -108,7 +106,7 @@ tasks:
 
     run:
         desc: Run the server.
-        cmd: ./dist/server_bun
+        cmd: ./bin/server
 
     # These use task's builtin watch feature. Need to use task's sources and generates features for this to work properly.
     # Otherwise both tasks will run on changes when running these two tasks at the same time.
