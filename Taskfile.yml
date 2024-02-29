@@ -32,7 +32,7 @@ tasks:
         deps: [pre-build]
         cmds:
             - templ generate
-            - go build -o ./bin/server cmd/server/main.go
+            - go build -o ./bin/server main.go
 
     test:
         desc: Run the tests.
@@ -73,7 +73,7 @@ tasks:
             - task: js
               vars: { OPTS: --minify }
             - templ generate
-            - go build -o ./bin/server cmd/server/main.go
+            - go build -o ./bin/server main.go
 
     clean:
         desc: Delete the bin, dist, and tmp dirs and all templ generated go files.

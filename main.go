@@ -10,11 +10,11 @@ import (
 	"syscall"
 	"time"
 
-	"eltimn/todo-plus/app/server/routes"
 	"eltimn/todo-plus/logging"
 	"eltimn/todo-plus/models"
 	"eltimn/todo-plus/pkg/errs"
 	"eltimn/todo-plus/pkg/util"
+	"eltimn/todo-plus/routes"
 )
 
 func main() {

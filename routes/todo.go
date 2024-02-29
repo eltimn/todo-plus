@@ -2,7 +2,7 @@ package routes
 
 import (
 	"context"
-	"eltimn/todo-plus/app/server/middleware"
+	"eltimn/todo-plus/middleware"
 	"eltimn/todo-plus/models"
 	"eltimn/todo-plus/pkg/router"
 	"eltimn/todo-plus/web/pages/todo"
