@@ -70,7 +70,7 @@ func (model *TodoModel) DeleteTodoById(c context.Context, todoId int64) error {
 	}
 	if rows != 1 {
 		// warn, but continue execution
-		slog.Warn("expected to affect 1 row, affected %d", rows)
+		slog.Warn(fmt.Sprintf("expected to affect 1 row, affected %d", rows))
 	}
 
 	return nil
@@ -160,7 +160,7 @@ func (model *TodoModel) ToggleTodoCompleted(c context.Context, todo *Todo) error
 	}
 	if rows != 1 {
 		// warn, but continue execution
-		slog.Warn("[toggling todo completed] - expected to affect 1 row, affected %d", rows)
+		slog.Warn(fmt.Sprintf("[toggling todo completed] - expected to affect 1 row, affected %d", rows))
 	}
 
 	return nil

@@ -36,6 +36,10 @@ tasks:
 
     test:
         desc: Run the tests.
+        cmd: go test ./...
+
+    testv:
+        desc: Run the tests.
         cmd: go test -v ./...
 
     css:

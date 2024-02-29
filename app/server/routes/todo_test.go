@@ -2,9 +2,9 @@ package routes
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"eltimn/todo-plus/models"
@@ -45,8 +45,13 @@ func TestTodosIndex(t *testing.T) {
 	router.HttpHandler(env.index).ServeHTTP(rec, req)
 
 	// expected := "1, 1, message1, message2, false"
-	fmt.Println(rec.Body.String())
-	// if expected != rec.Body.String() {
-	// 	t.Errorf("\n...expected = %v\n...obtained = %v", expected, rec.Body.String())
-	// }
+	body := rec.Body.String()
+
+	if !strings.Contains(body, "message1") {
+		t.Errorf("body does not contain 'message1', body: %v", body)
+	}
+
+	if !strings.Contains(body, "message2") {
+		t.Errorf("body does not contain 'message2', body: %v", body)
+	}
 }
