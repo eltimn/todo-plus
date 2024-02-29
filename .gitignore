@@ -2,6 +2,7 @@
 *_templ.txt
 .envrc
 bin/
+db-data/
 tmp/
 .devbox/
 .direnv/
