@@ -17,6 +17,8 @@ import (
 	"eltimn/todo-plus/routes"
 )
 
+const DEFAULT_DB_TIMEOUT = 5 * time.Second
+
 func main() {
 	// setup logging
 	logLevel, logHandler := logging.Configure(os.Getenv("LOG_LEVEL"), os.Getenv("LOG_HANDLER"))
@@ -24,6 +26,7 @@ func main() {
 
 	// grab some env vars
 	listenAddress := util.GetEnv("WEB_LISTEN", ":8989")
+	isSecure := util.GetEnv("WEB_SECURE", "false")
 	dbUrl := util.GetEnv("DB_URL", "http://127.0.0.1:5000")
 
 	// init libsql db
@@ -36,7 +39,10 @@ func main() {
 	slog.Info("Connected to libsql", slog.String("url", dbUrl))
 
 	routeEnv := routes.RouteEnv{
-		Users: models.NewUserModel(database, 5*time.Second),
+		Users:    models.NewUserModel(database, DEFAULT_DB_TIMEOUT),
+		Todos:    models.NewTodoModel(database, DEFAULT_DB_TIMEOUT),
+		Sessions: models.NewSessionModel(database, DEFAULT_DB_TIMEOUT),
+		IsSecure: isSecure == "true",
 	}
 
 	// create router

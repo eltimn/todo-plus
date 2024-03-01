@@ -36,7 +36,7 @@ func (model *TodoModel) CreateNewTodo(c context.Context, input *CreateTodoInput)
 	defer cancel()
 
 	var lastInsertId int
-	query := "INSERT INTO todos (user_id, plain_text, rich_text, is_completed) VALUES ($1, $2, $3, $4) RETURNING id"
+	query := "INSERT INTO todos (user_id, plain_text, rich_text, is_completed) VALUES (?, ?, ?, ?) RETURNING id"
 	err := model.db.QueryRowContext(ctx, query, input.UserId, input.PlainText, input.RichText, false).Scan(&lastInsertId)
 	if err != nil {
 		return &Todo{}, err
@@ -81,7 +81,7 @@ func (model *TodoModel) FetchTodo(c context.Context, todoId int64) (*Todo, error
 	defer cancel()
 
 	todo := Todo{}
-	query := "SELECT id, user_id, plain_text, rich_text, is_completed FROM todos WHERE id = $1"
+	query := "SELECT id, user_id, plain_text, rich_text, is_completed FROM todos WHERE id = ?"
 	err := model.db.QueryRowContext(ctx, query, todoId).Scan(&todo.Id, &todo.UserId, &todo.PlainText, &todo.RichText, &todo.IsCompleted)
 	if err != nil {
 		return &Todo{}, fmt.Errorf("error fetching todo: %w", err)
@@ -97,11 +97,11 @@ func (model *TodoModel) FetchTodos(c context.Context, userId int64, filter strin
 	var whereClause string
 	switch filter {
 	case "active":
-		whereClause = "WHERE user_id = $1 AND is_completed = false"
+		whereClause = "WHERE user_id = ? AND is_completed = false"
 	case "completed":
-		whereClause = "WHERE user_id = $1 AND is_completed = true"
+		whereClause = "WHERE user_id = ? AND is_completed = true"
 	default:
-		whereClause = "WHERE user_id = $1"
+		whereClause = "WHERE user_id = ?"
 	}
 
 	qry := fmt.Sprintf("SELECT id, user_id, plain_text, rich_text, is_completed FROM todos %s", whereClause)
@@ -122,6 +122,11 @@ func (model *TodoModel) FetchTodos(c context.Context, userId int64, filter strin
 		}
 		todos = append(todos, todo)
 	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+
 	// If the database is being written to, ensure to check for Close
 	// errors that may be returned from the driver. The query may
 	// encounter an auto-commit error and be forced to rollback changes.
@@ -149,7 +154,7 @@ func (model *TodoModel) ToggleTodoCompleted(c context.Context, todo *Todo) error
 	ctx, cancel := context.WithTimeout(c, model.timeout)
 	defer cancel()
 
-	result, err := model.db.ExecContext(ctx, "UPDATE todos SET is_completed = $1 WHERE id = $2", !todo.IsCompleted, todo.Id)
+	result, err := model.db.ExecContext(ctx, "UPDATE todos SET is_completed = ? WHERE id = ?", !todo.IsCompleted, todo.Id)
 	if err != nil {
 		return fmt.Errorf("error toggling todo completed: %w", err)
 	}
@@ -170,7 +175,7 @@ func (model *TodoModel) ToggleAllCompleted(c context.Context, userId int64, isCo
 	ctx, cancel := context.WithTimeout(c, model.timeout)
 	defer cancel()
 
-	result, err := model.db.ExecContext(ctx, "UPDATE todos SET is_completed = $1 WHERE id = $2", isCompleted, userId)
+	result, err := model.db.ExecContext(ctx, "UPDATE todos SET is_completed = ? WHERE user_id = ?", isCompleted, userId)
 	if err != nil {
 		return fmt.Errorf("error toggling all todos: %w", err)
 	}
@@ -191,7 +196,7 @@ func (model *TodoModel) DeleteAllCompleted(c context.Context, userId int64) erro
 	ctx, cancel := context.WithTimeout(c, model.timeout)
 	defer cancel()
 
-	result, err := model.db.ExecContext(ctx, "DELETE FROM todos WHERE user_id = $1 AND is_completed = true", userId)
+	result, err := model.db.ExecContext(ctx, "DELETE FROM todos WHERE user_id = ? AND is_completed = true", userId)
 	if err != nil {
 		return fmt.Errorf("error deleting all completed todos: %w", err)
 	}

@@ -32,6 +32,31 @@ table "users" {
     columns = [column.username]
   }
 }
+table "sessions" {
+  schema = schema.main
+  column "id" {
+    null = true
+    type = text
+  }
+  column "user_id" {
+    null = false
+    type = integer
+  }
+  column "expires" {
+    null = false
+    type = text
+  }
+  primary_key {
+    columns = [column.id]
+  }
+  foreign_key "0" {
+    columns     = [column.user_id]
+    ref_columns = [table.users.column.id]
+    on_update   = CASCADE
+    on_delete   = RESTRICT
+  }
+}
+
 table "todos" {
   schema = schema.main
   column "id" {

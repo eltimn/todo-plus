@@ -2,10 +2,20 @@ package pages
 
 import (
 	"eltimn/todo-plus/web/layouts"
+	"eltimn/todo-plus/models"
 )
 
-templ Hello(name string) {
-	@layouts.TailwindUILayout() {
-		<div>Hello, { name }!</div>
+func getName(user *models.User) string {
+	name := "Guest"
+	if user.IsLoggedIn() {
+		name = user.FullName
+	}
+
+	return name
+}
+
+templ Hello(user *models.User) {
+	@layouts.TailwindUILayout(user) {
+		<div>Hello, { getName(user) }!</div>
 	}
 }

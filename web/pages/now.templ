@@ -4,10 +4,11 @@ import (
 	"time"
 
 	"eltimn/todo-plus/web/layouts"
+	"eltimn/todo-plus/models"
 )
 
-templ NowPage(d time.Time) {
-	@layouts.TailwindUILayout() {
+templ NowPage(user *models.User, d time.Time) {
+	@layouts.TailwindUILayout(user) {
 		<div>Now: { d.String() }</div>
 	}
 }

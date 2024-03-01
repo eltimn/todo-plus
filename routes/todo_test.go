@@ -40,11 +40,10 @@ func TestTodosIndex(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/todo", nil)
 
-	env := TodoEnv{todos: &mockTodoModel{}}
+	env := todoEnv{todos: &mockTodoModel{}}
 
 	router.HttpHandler(env.index).ServeHTTP(rec, req)
 
-	// expected := "1, 1, message1, message2, false"
 	body := rec.Body.String()
 
 	if !strings.Contains(body, "message1") {

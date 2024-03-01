@@ -2,20 +2,25 @@ package pages
 
 import (
 	"eltimn/todo-plus/web/layouts"
+	"eltimn/todo-plus/models"
 )
 
-templ Home() {
+templ Home(user *models.User) {
 	<ul>
 		<li><a href="/todo">Todo</a></li>
-		<li><a href="/hello/tim">Hello</a></li>
+		<li><a href="/hello">Hello</a></li>
 		<li><a href="/now">Time</a></li>
+		<li><a href="/error">Error</a></li>
+		<li><a href="/doesnotexist">404</a></li>
+		if !user.IsLoggedIn() {
 		<li><a href="/user/signup">Sign Up</a></li>
 		<li><a href="/user/login">Log In</a></li>
+		}
 	</ul>
 }
 
-templ HomePage() {
-	@layouts.TailwindUILayout() {
-		@Home()
+templ HomePage(user *models.User) {
+	@layouts.TailwindUILayout(user) {
+		@Home(user)
 	}
 }

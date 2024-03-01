@@ -2,14 +2,15 @@ package routes
 
 import (
 	"eltimn/todo-plus/web/layouts"
+	"eltimn/todo-plus/models"
 )
 
 templ ErrorPartial(err error) {
 	<div class="error">Error: { err.Error() }</div>
 }
 
-templ ErrorPage(err error) {
-	@layouts.TailwindUILayout() {
+templ ErrorPage(user *models.User, err error) {
+	@layouts.TailwindUILayout(user) {
 		@ErrorPartial(err)
 	}
 }

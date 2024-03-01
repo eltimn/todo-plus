@@ -5,7 +5,7 @@ import (
 	"eltimn/todo-plus/models"
 )
 
-templ TodoApp(todos []models.Todo, activeCount int) {
+templ TodoApp(user *models.User, todos []models.Todo, activeCount int) {
 	<section id="todos">
 		@topbar()
 		<div>
@@ -15,8 +15,8 @@ templ TodoApp(todos []models.Todo, activeCount int) {
 	</section>
 }
 
-templ TodoAppPage(todos []models.Todo, activeCount int) {
-	@layouts.TailwindUILayout() {
-		@TodoApp(todos, activeCount)
+templ TodoAppPage(user *models.User, todos []models.Todo, activeCount int) {
+	@layouts.TailwindUILayout(user) {
+		@TodoApp(user, todos, activeCount)
 	}
 }

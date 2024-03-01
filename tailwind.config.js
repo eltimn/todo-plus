@@ -3,6 +3,7 @@ module.exports = {
     "./web/**/*.templ"
   ],
   plugins: [
-    require("daisyui")
+    require("daisyui"),
+    require('@tailwindcss/forms'),
   ]
 };

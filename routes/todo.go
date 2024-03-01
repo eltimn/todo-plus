@@ -2,7 +2,6 @@ package routes
 
 import (
 	"context"
-	"eltimn/todo-plus/middleware"
 	"eltimn/todo-plus/models"
 	"eltimn/todo-plus/pkg/router"
 	"eltimn/todo-plus/web/pages/todo"
@@ -12,9 +11,7 @@ import (
 	"strconv"
 )
 
-const userId int64 = 1
-
-type TodoEnv struct {
+type todoEnv struct {
 	todos interface {
 		CreateNewTodo(c context.Context, input *models.CreateTodoInput) (*models.Todo, error)
 		DeleteTodoById(c context.Context, todoId int64) error
@@ -26,18 +23,18 @@ type TodoEnv struct {
 	}
 }
 
-func (env *TodoEnv) index(w http.ResponseWriter, req *http.Request) error {
+func (env *todoEnv) index(rw http.ResponseWriter, req *http.Request) error {
 	slog.Debug("Request", slog.Any("request", req.URL.Path))
-	env.renderTodoApp(w, req, true)
-	return nil
+	return env.renderTodoApp(rw, req, true)
 }
 
-func (env *TodoEnv) create(w http.ResponseWriter, req *http.Request) error {
+func (env *todoEnv) create(rw http.ResponseWriter, req *http.Request) error {
 	newTodo := req.PostFormValue("new-todo")
 	slog.Debug("newTodo", slog.String("newTodo", newTodo))
 
+	usr := contextUser(req)
 	input := &models.CreateTodoInput{
-		UserId:    userId,
+		UserId:    usr.Id,
 		PlainText: newTodo,
 		RichText:  newTodo,
 	}
@@ -47,11 +44,10 @@ func (env *TodoEnv) create(w http.ResponseWriter, req *http.Request) error {
 		return err
 	}
 
-	env.renderTodoApp(w, req, false)
-	return nil
+	return env.renderTodoApp(rw, req, false)
 }
 
-func (env *TodoEnv) delete(w http.ResponseWriter, req *http.Request) error {
+func (env *todoEnv) delete(rw http.ResponseWriter, req *http.Request) error {
 	todoId := req.PathValue("todoId")
 	slog.Debug("todoId", slog.String("todoId", todoId))
 
@@ -60,16 +56,26 @@ func (env *TodoEnv) delete(w http.ResponseWriter, req *http.Request) error {
 		return fmt.Errorf("error converting todoId string to int: %w", err)
 	}
 
+	// make sure the user owns the todo
+	todo, err := env.todos.FetchTodo(req.Context(), tid)
+	if err != nil {
+		return err
+	}
+
+	usr := contextUser(req)
+	if todo.UserId != usr.Id {
+		return fmt.Errorf("user does not own todo") // not authorized
+	}
+
 	err = env.todos.DeleteTodoById(req.Context(), tid)
 	if err != nil {
 		return err
 	}
 
-	env.renderTodoApp(w, req, false)
-	return nil
+	return env.renderTodoApp(rw, req, false)
 }
 
-func (env *TodoEnv) toggleCompleted(w http.ResponseWriter, req *http.Request) error {
+func (env *todoEnv) toggleCompleted(rw http.ResponseWriter, req *http.Request) error {
 	todoId := req.PathValue("todoId")
 	slog.Info("todoId", slog.String("todoId", todoId))
 
@@ -83,16 +89,20 @@ func (env *TodoEnv) toggleCompleted(w http.ResponseWriter, req *http.Request) er
 		return err
 	}
 
+	usr := contextUser(req)
+	if todo.UserId != usr.Id {
+		return fmt.Errorf("user does not own todo") // not authorized
+	}
+
 	err = env.todos.ToggleTodoCompleted(req.Context(), todo)
 	if err != nil {
 		return err
 	}
 
-	env.renderTodoApp(w, req, false)
-	return nil
+	return env.renderTodoApp(rw, req, false)
 }
 
-func (env *TodoEnv) toggleAllCompleted(w http.ResponseWriter, req *http.Request) error {
+func (env *todoEnv) toggleAllCompleted(rw http.ResponseWriter, req *http.Request) error {
 	c := req.PathValue("count")
 	count, err := strconv.ParseInt(c, 10, 64)
 	if err != nil {
@@ -100,52 +110,53 @@ func (env *TodoEnv) toggleAllCompleted(w http.ResponseWriter, req *http.Request)
 	}
 	slog.Debug("count", slog.Int64("count", count))
 
-	err = env.todos.ToggleAllCompleted(req.Context(), userId, count > 0)
+	usr := contextUser(req)
+	err = env.todos.ToggleAllCompleted(req.Context(), usr.Id, count > 0)
 	if err != nil {
 		return err
 	}
 
-	env.renderTodoApp(w, req, false)
-	return nil
+	return env.renderTodoApp(rw, req, false)
 }
 
-func (env *TodoEnv) deleteCompleted(w http.ResponseWriter, req *http.Request) error {
-	err := env.todos.DeleteAllCompleted(req.Context(), userId)
+func (env *todoEnv) deleteCompleted(rw http.ResponseWriter, req *http.Request) error {
+	usr := contextUser(req)
+	err := env.todos.DeleteAllCompleted(req.Context(), usr.Id)
 	if err != nil {
 		return err
 	}
 
-	env.renderTodoApp(w, req, false)
-	return nil
+	return env.renderTodoApp(rw, req, false)
 }
 
-func (env *TodoEnv) renderTodoApp(w http.ResponseWriter, req *http.Request, isFullPage bool) error {
+func (env *todoEnv) renderTodoApp(rw http.ResponseWriter, req *http.Request, isFullPage bool) error {
+	usr := contextUser(req)
 	filter := req.URL.Query().Get("filter")
 	if filter == "" {
 		filter = "all"
 	}
 
-	todos, count, err := env.todos.FetchTodos(req.Context(), userId, filter)
+	todos, count, err := env.todos.FetchTodos(req.Context(), usr.Id, filter)
 	if err != nil {
 		return err
 	}
 
 	if isFullPage {
-		todo.TodoAppPage(todos, count).Render(req.Context(), w)
+		todo.TodoAppPage(usr, todos, count).Render(req.Context(), rw)
 	} else {
-		todo.TodoApp(todos, count).Render(req.Context(), w)
+		todo.TodoApp(usr, todos, count).Render(req.Context(), rw)
 	}
 
 	return nil
 }
 
 func todoRoutes(rtr *router.Router, todos *models.TodoModel) {
-	env := &TodoEnv{
+	env := &todoEnv{
 		todos: todos,
 	}
 
 	rtr.Group(func(r *router.Router) {
-		r.Use(middleware.Mid(3))
+		r.Use(mustBeLoggedInMiddleware)
 		r.Get("/todo", env.index)
 		r.Post("/todo/create", env.create)
 		r.Delete("/todo/{todoId}", env.delete)
