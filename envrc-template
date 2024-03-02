@@ -1,0 +1,6 @@
+export LOG_LEVEL=debug
+export DB_PORT=42069
+export DB_URL=http://127.0.0.1:$DB_PORT
+export DB_ATLAS_URL=libsql+ws://127.0.0.1:$DB_PORT
+
+use flake . --impure
