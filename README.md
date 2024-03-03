@@ -12,3 +12,7 @@
 https://www.dudley.codes/posts/2020.05.19-golang-structure-web-servers/
 https://www.dudley.codes/posts/2021.02.23-golang-struct-organization/
 https://www.ardanlabs.com/blog/2015/09/composition-with-go.html
+
+## Note
+
+If you run `go mod tidy` be sure to also run `templ generate` as tidy will remove the entry for a-h/templ. And then run `gomod2nix`.

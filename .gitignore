@@ -3,6 +3,7 @@
 .envrc
 bin/
 db-data/
+result/
 tmp/
 .devbox/
 .direnv/

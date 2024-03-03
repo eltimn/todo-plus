@@ -50,16 +50,22 @@
           buildGoApplication =
             gomod2nix.legacyPackages.${system}.buildGoApplication;
         in {
-          todo-plus = buildGoApplication {
+          todo-server = buildGoApplication {
             inherit version;
-            name = "todo-plus";
+            name = "todo-server";
             src = gitignore.lib.gitignoreSource ./.;
             go = pkgs.go_1_22;
             # Must be added due to bug https://github.com/nix-community/gomod2nix/issues/120
             pwd = ./.;
-            # subPackages = [ "cmd/todo-plus" ];
             CGO_ENABLED = 0;
+            # https://stackoverflow.com/a/58441379/359319
+            # -trimpath
+            #   remove all file system paths from the resulting executable.
+            #   Instead of absolute file system paths, the recorded file names
+            #   will begin either a module path@version (when using modules),
+            #   or a plain import path (when using the standard library, or GOPATH).
             flags = [ "-trimpath" ];
+            # go build -ldflags="-help" ./main.go <- will show all options
             ldflags = [ "-s" "-w" "-extldflags -static" ];
 
             preBuild = ''
@@ -69,77 +75,39 @@
 
             buildPhase = ''
               runHook preBuild
-
               echo "Building go binary ..."
-              go build -o ./bin/server -mod=mod main.go
-
+              go build -o ./bin/server main.go
               runHook postBuild
+            '';
+
+            installPhase = ''
+              runHook preInstall
+              mkdir -p $out/bin
+              cp ./bin/server $out/bin/todo-server
+              runHook postInstall
             '';
           };
 
-          # web = pkgs.buildGo122Module {
-          #   pname = "web";
-          #   inherit version;
-          #   # version = "0.1.0";
-          #   src = gitignore.lib.gitignoreSource ./.;
+          todo-assets = pkgs.buildNpmPackage {
+            name = "todo-assets";
+            src = gitignore.lib.gitignoreSource ./.;
+            npmDepsHash = "sha256-QNpo1s9zL8V3Wab2fk9Ef2iAYkb/Vd1DmdOeyc38XU8=";
+            dontNpmBuild = true;
 
-          #   # This hash locks the dependencies of this package. It is
-          #   # necessary because of how Go requires network access to resolve
-          #   # VCS.  See https://www.tweag.io/blog/2021-03-04-gomod2nix/ for
-          #   # details. Normally one can build with a fake sha256 and rely on native Go
-          #   # mechanisms to tell you what the hash should be or determine what
-          #   # it should be "out-of-band" with other tooling (eg. gomod2nix).
-          #   # To begin with it is recommended to set this, but one must
-          #   # remember to bump this hash when your dependencies change.
-          #   # vendorHash = pkgs.lib.fakeHash;
-          #   vendorHash = "sha256-FmiIYJAnf3DtrLLaC82i0I7ia+eqExLf463jlSbsCPg=";
+            buildPhase = ''
+              runHook preBuild
+              echo "Building todo-assets ..."
+              ${pkgs.tailwindcss}/bin/tailwindcss -i ./web/assets/css/main.css -o dist/assets/css/main.css --minify
+              ${pkgs.esbuild}/bin/esbuild web/assets/js/main.js --outdir=dist/assets/js --bundle --target='esnext' --format=esm --minify
+              runHook postBuild
+            '';
 
-          #   #
-          #   # go build -o ./bin/server main.go
-
-          #   # configurePhase = ''
-          #   #   runHook preConfigure
-
-          #   #   ${templ system}/bin/templ generate
-
-          #   #   runHook postConfigure
-          #   # '';
-
-          #   preBuild = ''
-          #     echo "Generating code with templ ..."
-          #     ${templ system}/bin/templ generate
-          #   '';
-
-          #   buildPhase = ''
-          #     runHook preBuild
-
-          #     # echo "Building todo-plus..."
-          #     # can't run npm here because nix does not have internet access
-          #     # ${pkgs.nodejs}/bin/npm ci
-          #     # ${pkgs.tailwindcss}/bin/tailwindcss -i ./web/assets/css/main.css -o dist/assets/css/main.css
-
-          #     # module lookup disabled by GOPROXY=off
-          #     # go get github.com/a-h/templ
-
-          #     # cannot find module providing package github.com/a-h/templ: import lookup disabled by -mod=vendor
-
-          #     echo "Building go binary ..."
-          #     go build -o ./bin/server -mod=mod main.go
-
-          #     runHook postBuild
-          #   '';
-
-          #   installPhase = ''
-          #     runHook preInstall
-
-          #     # mkdir -p $out/bin
-          #     # cp -r node_modules $out/node_modules
-          #     # cp package.json $out/package.json
-          #     # cp -r dist $out/dist
-
-          #     runHook postInstall
-          #   '';
-          # };
+            installPhase = ''
+              cp web/assets/js/htmx*.min.js dist/assets/js/
+              mkdir -p $out/assets
+              cp -r dist/assets $out
+            '';
+          };
         });
 
       # Add dependencies that are only needed for development
@@ -148,28 +116,26 @@
         in {
           default = pkgs.mkShell {
             buildInputs = with pkgs; [
+              esbuild
               go_1_22
-              gopls
-              gotools
-              go-tools
-              gomod2nix.legacyPackages.${system}.gomod2nix
-              (templ system)
-              go-task
               nodejs
               tailwindcss
+              (templ system)
             ];
 
             packages = with pkgs; [
               air
               atlas
-              esbuild
+              go-task
+              go-tools
               golangci-lint
-              mongosh
-              sass
+              gomod2nix.legacyPackages.${system}.gomod2nix
+              gopls
+              gotools
             ];
 
             shellHook = ''
-              echo "Welcome to todo-plus!"
+              echo "Welcome to todo-server!"
               echo "`${pkgs.go}/bin/go version`"
               echo "templ: `${(templ system)}/bin/templ --version`"
               echo "node: `${pkgs.nodejs}/bin/node --version`"
@@ -181,15 +147,8 @@
       # The default package for 'nix build'. This makes sense if the
       # flake provides only one package or there is a clear "main"
       # package.
-      defaultPackage =
-        forAllSystems (system: self.packages.${system}.todo-plus);
-
-      # apps = forAllSystems (system: {
-      #   default = {
-      #     type = "app";
-      #     program = "${self.packages.${system}.default}/bin/server";
-      #   };
-      # });
+      # defaultPackage =
+      #   forAllSystems (system: self.packages.${system}.todo-server);
     };
 }
 

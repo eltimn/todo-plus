@@ -1,43 +1,41 @@
-# syntax=docker/dockerfile:1
+# Derived from: https://mitchellh.com/writing/nix-with-dockerfiles
+# Nix builder
+FROM nixos/nix:latest AS builder
 
-# Build the application from source
-FROM golang:1.22 AS build-stage
+# Copy our source and setup our working dir.
+COPY . /tmp/build
+WORKDIR /tmp/build
 
-WORKDIR /build
+# Build the todo-server Go binary with our Nix environment
+RUN nix \
+    --extra-experimental-features "nix-command flakes" \
+    --option filter-syscalls false \
+    build .#todo-server
 
-# Install deps
-COPY go.mod go.sum ./
-RUN go mod download
-RUN go install github.com/a-h/templ/cmd/templ@latest
+# Copy the Nix store closure into a directory. The Nix store closure is the
+# entire set of Nix store values that we need for our build.
+RUN mkdir /tmp/nix-store-closure
+RUN cp -R $(nix-store -qR result/) /tmp/nix-store-closure
 
-# Copy sources
-COPY *.go ./
-COPY logging ./logging
-COPY models ./models
-COPY pkg ./pkg
-COPY routes ./routes
-COPY web ./web
+# Move the built binary to a temporary directory
+RUN mv result /tmp/todo-server-result
 
-# Build
-RUN templ generate
-RUN CGO_ENABLED=0 GOOS=linux go build -o /todo-plus main.go
+# Run the assets build
+RUN nix \
+    --extra-experimental-features "nix-command flakes" \
+    --option filter-syscalls false \
+    build .#todo-assets
 
-# Run the tests in the container
-FROM build-stage AS run-test-stage
-RUN go test -v ./...
-
-# Deploy the application binary into a lean image
-FROM gcr.io/distroless/base-debian11 AS build-release-stage
+# Final image is based on scratch. We copy a bunch of Nix dependencies
+# but they're fully self-contained so we don't need Nix anymore.
+FROM scratch
 
 WORKDIR /app
 
-COPY --from=build-stage /todo-plus ./todo-plus
-COPY dist/assets ./assets
+# Copy /nix/store
+COPY --from=builder /tmp/nix-store-closure /nix/store
+COPY --from=builder /tmp/todo-server-result /app
+COPY --from=builder /tmp/build/result /app
+CMD ["/app/bin/todo-server"]
 
-EXPOSE 8080
-
-USER nonroot:nonroot
-
-CMD ["/app/todo-plus"]
-
-# docker run -p 8989:8989 -e ASSETS_PATH='/app/assets' -e DB_URL=http://192.168.1.43:42069 todo
+# 18.2 MB
