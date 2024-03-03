@@ -28,6 +28,9 @@ func main() {
 	listenAddress := util.GetEnv("WEB_LISTEN", ":8989")
 	isSecure := util.GetEnv("WEB_SECURE", "false")
 	dbUrl := util.GetEnv("DB_URL", "http://127.0.0.1:5000")
+	assetsPath := util.GetEnv("ASSETS_PATH", "./dist/assets")
+
+	slog.Info("Using Assets Path", slog.String("path", assetsPath))
 
 	// init libsql db
 	database, err := models.OpenDB(dbUrl)
@@ -39,10 +42,11 @@ func main() {
 	slog.Info("Connected to libsql", slog.String("url", dbUrl))
 
 	routeEnv := routes.RouteEnv{
-		Users:    models.NewUserModel(database, DEFAULT_DB_TIMEOUT),
-		Todos:    models.NewTodoModel(database, DEFAULT_DB_TIMEOUT),
-		Sessions: models.NewSessionModel(database, DEFAULT_DB_TIMEOUT),
-		IsSecure: isSecure == "true",
+		Users:      models.NewUserModel(database, DEFAULT_DB_TIMEOUT),
+		Todos:      models.NewTodoModel(database, DEFAULT_DB_TIMEOUT),
+		Sessions:   models.NewSessionModel(database, DEFAULT_DB_TIMEOUT),
+		IsSecure:   isSecure == "true" || isSecure == "1",
+		AssetsPath: assetsPath,
 	}
 
 	// create router

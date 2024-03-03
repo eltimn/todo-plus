@@ -13,3 +13,14 @@ dist
 *.db
 *.db-shm
 *.db-wal
+
+# Devenv
+.devenv*
+devenv.local.nix
+
+# direnv
+.direnv
+
+# pre-commit
+.pre-commit-config.yaml
+

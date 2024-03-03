@@ -21,7 +21,8 @@ type RouteEnv struct {
 	Todos    *models.TodoModel
 	Sessions *models.SessionModel
 
-	IsSecure bool
+	IsSecure   bool
+	AssetsPath string
 }
 
 func Routes(env *RouteEnv) *router.Router {
@@ -35,7 +36,7 @@ func Routes(env *RouteEnv) *router.Router {
 	rtr.Use(userSessionMiddleware(userEnv))
 
 	// serve static files
-	fs := http.FileServer(http.Dir("./dist/assets"))
+	fs := http.FileServer(http.Dir(env.AssetsPath))
 	rtr.ServeMux.Handle("GET /assets/", http.StripPrefix("/assets/", fs))
 
 	userRoutes(rtr, userEnv)
