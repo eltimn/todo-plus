@@ -9,6 +9,9 @@ version: "3"
 output: "group"
 interval: 500ms
 
+env:
+  DOCKER_IMAGE: todo-plus
+
 tasks:
   pre-build:
     cmds:
@@ -131,7 +134,7 @@ tasks:
       - "web/assets/js/**/*.js"
     cmd: { task: js }
 
-  # This causes both tasks to run
+  # This causes both tasks to run when a file changes in either one.
   dev:
     watch: true
     sources:
@@ -169,3 +172,11 @@ tasks:
     desc: Apply the db schema hcl file to the local dev database.
     cmd: atlas schema apply --to file://models/atlas.hcl -u "$DB_ATLAS_URL"
     interactive: true
+
+  docker-build:
+    desc: Build the docker image.
+    cmd: docker build -t DOCKER_IMAGE:latest .
+
+  docker-run:
+    desc: Run the docker image.
+    cmd: docker run -p $WEB_PORT:$WEB_PORT -e ASSETS_PATH='/app/assets' -e DB_URL=$DB_URL todo-plus

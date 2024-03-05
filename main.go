@@ -25,10 +25,13 @@ func main() {
 	slog.Info("Configured logging", slog.String("level", logLevel), slog.String("handler", logHandler))
 
 	// grab some env vars
-	listenAddress := util.GetEnv("WEB_LISTEN", ":8989")
+	listenIp := util.GetEnv("WEB_IP", "0.0.0.0")
+	listenPort := util.GetEnv("WEB_PORT", "8080")
 	isSecure := util.GetEnv("WEB_SECURE", "false")
 	dbUrl := util.GetEnv("DB_URL", "http://127.0.0.1:5000")
 	assetsPath := util.GetEnv("ASSETS_PATH", "./dist/assets")
+
+	listenAddress := listenIp + ":" + listenPort
 
 	slog.Info("Using Assets Path", slog.String("path", assetsPath))
 
