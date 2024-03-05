@@ -80,6 +80,11 @@
               runHook postBuild
             '';
 
+            postBuild = ''
+              echo "Running go test ..."
+              go test ./...
+            '';
+
             installPhase = ''
               runHook preInstall
               mkdir -p $out/bin

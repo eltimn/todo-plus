@@ -16,3 +16,4 @@ https://www.ardanlabs.com/blog/2015/09/composition-with-go.html
 ## Note
 
 If you run `go mod tidy` be sure to also run `templ generate` as tidy will remove the entry for a-h/templ. And then run `gomod2nix`.
+
