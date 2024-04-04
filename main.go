@@ -17,7 +17,7 @@ import (
 	"eltimn/todo-plus/routes"
 )
 
-const DEFAULT_DB_TIMEOUT = 5 * time.Second
+const DefaultDatabaseTimeout = 5 * time.Second
 
 func main() {
 	// setup logging
@@ -45,9 +45,9 @@ func main() {
 	slog.Info("Connected to libsql", slog.String("url", dbUrl))
 
 	routeEnv := routes.RouteEnv{
-		Users:      models.NewUserModel(database, DEFAULT_DB_TIMEOUT),
-		Todos:      models.NewTodoModel(database, DEFAULT_DB_TIMEOUT),
-		Sessions:   models.NewSessionModel(database, DEFAULT_DB_TIMEOUT),
+		Users:      models.NewUserModel(database, DefaultDatabaseTimeout),
+		Todos:      models.NewTodoModel(database, DefaultDatabaseTimeout),
+		Sessions:   models.NewSessionModel(database, DefaultDatabaseTimeout),
 		IsSecure:   isSecure == "true" || isSecure == "1",
 		AssetsPath: assetsPath,
 	}

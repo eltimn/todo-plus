@@ -156,7 +156,8 @@ tasks:
 
   db-start:
     desc: Start the database.
-    cmd: turso dev --db-file db-data/local.db --port $DB_PORT
+    # cmd: turso dev --db-file db-data/local.db --port $DB_PORT
+    cmd: sqld -d db-data/dat.db --http-listen-addr=127.0.0.1:$DB_PORT
     interactive: true
 
   db-shell:
@@ -165,7 +166,7 @@ tasks:
     interactive: true
 
   # atlas-inspect:
-  #     desc: Generate a db schema hcl file form the current database.
+  #     desc: Generate a db schema hcl file from the current database.
   #     cmd: atlas schema inspect -u "$DB_ATLAS_URL" --ouptput atlas.hcl
 
   atlas-apply-dev:

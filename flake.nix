@@ -113,6 +113,13 @@
               cp -r dist/assets $out
             '';
           };
+
+          # dockerImage = pkgs.dockerTools.buildImage {
+          #   name = "catscii";
+          #   tag = "latest";
+          #   copyToRoot = [ todo-server todo-assets ];
+          #   config = { Cmd = [ "${todo-server}/bin/todo-server" ]; };
+          # };
         });
 
       # Add dependencies that are only needed for development
@@ -137,7 +144,14 @@
               gomod2nix.legacyPackages.${system}.gomod2nix
               gopls
               gotools
+              google-cloud-sdk
             ];
+
+            env = {
+              CLOUDSDK_ACTIVE_CONFIG_NAME = "todo-plus";
+              # GCP_PROJECT_ID = "todo-plus-416720";
+              # GCP_IMAGE_BUCKET = "custom-server-images";
+            };
 
             shellHook = ''
               echo "Welcome to todo-server!"

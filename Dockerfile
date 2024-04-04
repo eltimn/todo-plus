@@ -39,3 +39,4 @@ COPY --from=builder /tmp/build/result /app
 CMD ["/app/bin/todo-server"]
 
 # 18.2 MB
+
