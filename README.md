@@ -17,3 +17,13 @@ https://www.ardanlabs.com/blog/2015/09/composition-with-go.html
 
 If you run `go mod tidy` be sure to also run `templ generate` as tidy will remove the entry for a-h/templ. And then run `gomod2nix`.
 
+
+## Todo
+
+- github action
+	- compile/test
+- deploy
+	- Look into NixOps
+	- Deploy using pulumi/terraform cdk to aws ec2 instances
+- try to use dockerTools (probably requires being able to build both packages at the same time)
+- Add lots more tests
