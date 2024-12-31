@@ -16,7 +16,7 @@ type Session struct {
 	Id       string
 	UserId   int64
 	Expires  time.Time
-	Count    int64
+	Count    uint32
 	IsActive bool
 }
 
@@ -88,24 +88,24 @@ func (model *SessionModel) GetById(c context.Context, sessionId string) (*Sessio
 	return &session, nil
 }
 
-func (model *SessionModel) GetCount(c context.Context, session *Session) (int64, error) {
+// func (model *SessionModel) GetCountByUserId(c context.Context, session *Session) (uint32, error) {
+// 	ctx, cancel := context.WithTimeout(c, model.timeout)
+// 	defer cancel()
+
+// 	var count uint32
+// 	err := db.QueryRowContext(ctx, "SELECT count FROM sessions WHERE user_id = ?", session.UserId).Scan(&count)
+// 	if err != nil {
+// 		return 0, err
+// 	}
+
+// 	return count, nil
+// }
+
+func (model *SessionModel) SetCount(c context.Context, sessionId string, count uint32) error {
 	ctx, cancel := context.WithTimeout(c, model.timeout)
 	defer cancel()
 
-	var count int64
-	err := db.QueryRowContext(ctx, "SELECT count FROM session WHERE user_id = ?", session.UserId).Scan(&count)
-	if err != nil {
-		return 0, err
-	}
-
-	return count, nil
-}
-
-func (model *SessionModel) SetCount(c context.Context, session *Session, count int64) error {
-	ctx, cancel := context.WithTimeout(c, model.timeout)
-	defer cancel()
-
-	err := ExecOneContext(ctx, "UPDATE session SET count = ? WHERE id = ?", session.Id, count)
+	err := ExecOneContext(ctx, "UPDATE sessions SET count = ? WHERE id = ?", count, sessionId)
 	if err != nil {
 		return err
 	}

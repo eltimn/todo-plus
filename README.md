@@ -20,8 +20,10 @@ If you run `go mod tidy` be sure to also run `templ generate` as tidy will remov
 
 ## Todo
 
-- finish implementing repo pattern
+- create an interface for session
+- finish implementing repo pattern ???
 - add a sql builder
+  - [go-sqlbuilder](https://github.com/huandu/go-sqlbuilder)
   - [sqlc](https://sqlc.dev)
   - [jet](https://github.com/go-jet/jet)
 - github action

@@ -36,6 +36,10 @@ func Routes(env *RouteEnv) *router.Router {
 		isSecure: env.IsSecure,
 	}
 
+	counterEnv := &counterEnv{
+		sessions: env.Sessions,
+	}
+
 	rtr := router.NewRouter(router.WithErrorHandler(handleHttpError))
 	rtr.Use(sessionMiddleware(userEnv))
 
@@ -45,7 +49,7 @@ func Routes(env *RouteEnv) *router.Router {
 
 	userRoutes(rtr, userEnv)
 	todoRoutes(rtr, env.Todos)
-	counterRoutes(rtr)
+	counterRoutes(rtr, counterEnv)
 
 	rtr.Get("/hello", helloHandler)
 	rtr.Get("/now", nowHandler)
@@ -124,9 +128,19 @@ func handleHttpError(rw http.ResponseWriter, req *http.Request, err error) {
 
 	rw.WriteHeader(e.StatusCode)
 
-	isHxRequest := req.Header.Get("HX-Request")
-	if isHxRequest == "true" {
-		ErrorPartial(e).Render(req.Context(), rw)
+	// isHxRequest := req.Header.Get("HX-Request")
+	// if isHxRequest == "true" {
+	// 	ErrorPartial(e).Render(req.Context(), rw)
+	// } else {
+	// 	usr := contextUser(req)
+	// 	ErrorPage(usr, e).Render(req.Context(), rw)
+	// }
+
+	isDatastarRequest := req.Header.Get("Datastar-Request")
+	if isDatastarRequest == "true" {
+		// ErrorPartial(e).Render(req.Context(), rw)
+		sse := datastar.NewSSE(rw, req)
+		sse.MergeFragmentTempl(ErrorPartial(e))
 	} else {
 		usr := contextUser(req)
 		ErrorPage(usr, e).Render(req.Context(), rw)

@@ -186,11 +186,11 @@ func userRoutes(rtr *router.Router, env *userEnv) {
 }
 
 func contextSession(req *http.Request) *models.Session {
-	user, ok := req.Context().Value(ContextSessionKey).(*models.Session)
+	sess, ok := req.Context().Value(ContextSessionKey).(*models.Session)
 	if !ok {
 		return &models.Session{}
 	}
-	return user
+	return sess
 }
 
 func contextUser(req *http.Request) *models.User {

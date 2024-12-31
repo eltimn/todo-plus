@@ -1,0 +1,57 @@
+package pages
+
+import (
+	"eltimn/todo-plus/models"
+	"eltimn/todo-plus/web/layouts"
+	datastar "github.com/starfederation/datastar/sdk/go"
+)
+
+type TemplCounterSignals struct {
+	Global uint32 `json:"global"`
+	User   uint32 `json:"user"`
+}
+
+templ templCounterExampleButtons() {
+	<div>
+		<button
+			data-on-click={ datastar.PostSSE("/counter/increment/global") }
+		>
+			Increment Global
+		</button>
+		<button
+			data-on-click={ datastar.PostSSE("/counter/increment/user") }
+		>
+			Increment User
+		</button>
+	</div>
+}
+
+templ templCounterExampleCounts() {
+	<div>
+		<div>
+			<div>Global</div>
+			<div data-text="global.value"></div>
+		</div>
+		<div>
+			<div>User</div>
+			<div data-text="user.value"></div>
+		</div>
+	</div>
+}
+
+templ CounterPartial(signals TemplCounterSignals) {
+	<div
+		id="container"
+		data-signals={ templ.JSONString(signals) }
+		class="flex flex-col gap-4"
+	>
+		@templCounterExampleButtons()
+		@templCounterExampleCounts()
+	</div>
+}
+
+templ CounterPage(user *models.User, signals TemplCounterSignals) {
+	@layouts.TailwindUILayout(user) {
+		@CounterPartial(signals)
+	}
+}
