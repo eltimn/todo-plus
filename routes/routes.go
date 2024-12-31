@@ -9,12 +9,16 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
+	datastar "github.com/starfederation/datastar/sdk/go"
 )
 
 type ContextKey string
 
 const ContextUserKey ContextKey = "user"
 const ContextSessionIdKey ContextKey = "sessionId"
+const ContextSessionKey ContextKey = "session"
+const ContextIsLoggedInKey ContextKey = "isLoggedIn"
 
 type RouteEnv struct {
 	Users    *models.UserModel
@@ -33,7 +37,7 @@ func Routes(env *RouteEnv) *router.Router {
 	}
 
 	rtr := router.NewRouter(router.WithErrorHandler(handleHttpError))
-	rtr.Use(userSessionMiddleware(userEnv))
+	rtr.Use(sessionMiddleware(userEnv))
 
 	// serve static files
 	fs := http.FileServer(http.Dir(env.AssetsPath))
@@ -41,15 +45,17 @@ func Routes(env *RouteEnv) *router.Router {
 
 	userRoutes(rtr, userEnv)
 	todoRoutes(rtr, env.Todos)
+	counterRoutes(rtr)
 
 	rtr.Get("/hello", helloHandler)
 	rtr.Get("/now", nowHandler)
+	rtr.Get("/quiz", quizSSEHandler)
 	rtr.Get("/error", func(rw http.ResponseWriter, req *http.Request) error {
 		return fmt.Errorf("this is only a test error")
 	})
 
 	// Handles the home page and all non-matches
-	rtr.ServeMux.Handle("/", http.HandlerFunc(homeHandler(userEnv)))
+	rtr.ServeMux.Handle("/", homeHandler(userEnv))
 
 	return rtr
 }
@@ -60,31 +66,46 @@ func helloHandler(rw http.ResponseWriter, req *http.Request) error {
 }
 
 // This is written as a regular http.HandlerFunc so it can be used as a catch-all route to handle 404s.
-func homeHandler(env *userEnv) http.HandlerFunc {
-	return func(rw http.ResponseWriter, req *http.Request) {
+func homeHandler(env *userEnv) http.Handler {
+	// This middleware is not called otherwise. Probably because ServeMux is called directly.
+	mid := sessionMiddleware(env)
+
+	next := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		slog.Debug("URL", slog.String("url", req.URL.Path))
 		if req.URL.Path != "/" || req.Method != http.MethodGet {
 			handleHttpError(rw, req, errs.NotFoundError)
 			return
 		}
 
-		usr, err := getUserFromCookie(req, env)
-		if err != nil {
-			slog.Debug("User not found", errs.ErrAttr(err))
-			handleHttpError(rw, req, err)
-			return
-		}
-		err = pages.HomePage(usr).Render(req.Context(), rw)
+		usr := contextUser(req)
+
+		err := pages.HomePage(usr).Render(req.Context(), rw)
 		if err != nil {
 			handleHttpError(rw, req, err)
 			return
 		}
-	}
+	})
+
+	return mid(next)
 }
 
 func nowHandler(rw http.ResponseWriter, req *http.Request) error {
 	usr := contextUser(req)
 	return pages.NowPage(usr, time.Now()).Render(req.Context(), rw)
+}
+
+func quizSSEHandler(w http.ResponseWriter, req *http.Request) error {
+	time.Sleep(2 * time.Second)
+	// Creates a new `ServerSentEventGenerator` instance.
+	sse := datastar.NewSSE(w, req)
+
+	// Merges HTML fragments into the DOM.
+	sse.MergeFragments(`<div id="question">What do you put in a toaster?</div>`)
+
+	// Merges signals into the signals.
+	sse.MergeSignals([]byte(`{response: '', answer: 'bread'}`))
+
+	return nil
 }
 
 func handleHttpError(rw http.ResponseWriter, req *http.Request, err error) {

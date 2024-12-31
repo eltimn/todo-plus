@@ -20,10 +20,14 @@ If you run `go mod tidy` be sure to also run `templ generate` as tidy will remov
 
 ## Todo
 
+- finish implementing repo pattern
+- add a sql builder
+  - [sqlc](https://sqlc.dev)
+  - [jet](https://github.com/go-jet/jet)
 - github action
 	- compile/test
 - deploy
 	- Look into NixOps
 	- Deploy using pulumi/terraform cdk to aws ec2 instances
-- try to use dockerTools (probably requires being able to build both packages at the same time)
 - Add lots more tests
+- try to use dockerTools (probably requires being able to build both packages at the same time)

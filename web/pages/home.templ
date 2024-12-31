@@ -1,26 +1,60 @@
 package pages
 
 import (
-	"eltimn/todo-plus/web/layouts"
 	"eltimn/todo-plus/models"
+	"eltimn/todo-plus/web/components"
+	"eltimn/todo-plus/web/layouts"
+	datastar "github.com/starfederation/datastar/sdk/go"
 )
 
 templ Home(user *models.User) {
 	<ul>
-		<li><a href="/todo">Todo</a></li>
-		<li><a href="/hello">Hello</a></li>
-		<li><a href="/now">Time</a></li>
+		// <li><a href="/counter">Counter</a></li>
+		// <li><a href="/todo">Todo</a></li>
+		// <li><a href="/hello">Hello</a></li>
+		// <li><a href="/now">Time</a></li>
 		<li><a href="/error">Error</a></li>
 		<li><a href="/doesnotexist">404</a></li>
 		if !user.IsLoggedIn() {
-		<li><a href="/user/signup">Sign Up</a></li>
-		<li><a href="/user/login">Log In</a></li>
+			<li><a href="/user/signup">Sign Up</a></li>
+			<li><a href="/user/login">Log In</a></li>
 		}
 	</ul>
+}
+
+templ quiz() {
+	<div
+		data-signals="{response: '', answer: 'bread'}"
+		data-computed-correct="response.value.toLowerCase() == answer.value"
+	>
+		<div id="question"></div>
+		@components.Button("submit", templ.Attributes{
+			"data-on-click":            datastar.GetSSE("/quiz"),
+			"data-indicator":           "fetching",
+			"data-attributes-disabled": "fetching.value",
+		}) {
+			<span>Fetch a question</span>
+		}
+		<div data-show="fetching.value">Loading...</div>
+		@components.Button("submit", templ.Attributes{
+			"data-show":     "answer.value != ''",
+			"data-on-click": "response.value = prompt('Answer:') ?? ''",
+		}) {
+			<span>BUZZ</span>
+		}
+		<div data-show="response.value != ''">
+			You answered <span data-text="response.value"></span>.
+			<span data-show="correct.value">That is correct ✅</span>
+			<span data-show="!correct.value">
+				The correct answer is: <span data-text="answer.value"></span>
+			</span>
+		</div>
+	</div>
 }
 
 templ HomePage(user *models.User) {
 	@layouts.TailwindUILayout(user) {
 		@Home(user)
+		@quiz()
 	}
 }

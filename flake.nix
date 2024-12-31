@@ -4,10 +4,12 @@
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-unstable";
 
-    templ = {
-      url = "github:a-h/templ/v0.2.590";
-      inputs = { nixpkgs.follows = "nixpkgs"; };
-    };
+    # templ = {
+    #   url = "github:a-h/templ/v0.2.590";
+    #   inputs = {
+    #     nixpkgs.follows = "nixpkgs";
+    #   };
+    # };
 
     gitignore = {
       url = "github:hercules-ci/gitignore.nix";
@@ -20,13 +22,18 @@
     };
   };
 
-  outputs = { self, nixpkgs, templ, gitignore, gomod2nix }@inputs:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      gitignore,
+      gomod2nix,
+    }:
     let
-      templ = system: self.inputs.templ.packages.${system}.templ;
+      # templ = system: self.inputs.templ.packages.${system}.templ;
 
       # to work with older version of flakes
-      lastModifiedDate =
-        self.lastModifiedDate or self.lastModified or "19700101";
+      lastModifiedDate = self.lastModifiedDate or self.lastModified or "19700101";
 
       # Generate a user-friendly version number.
       version = builtins.substring 0 8 lastModifiedDate;
@@ -43,21 +50,27 @@
       # Nixpkgs instantiated for supported system types.
       nixpkgsFor = forAllSystems (system: import nixpkgs { inherit system; });
 
-    in {
-      packages = forAllSystems (system:
+      goPkgName = "go"; # 1.23
+      nodePkgName = "nodejs_22";
+      templPkgName = "templ";
+    in
+    {
+      packages = forAllSystems (
+        system:
         let
           pkgs = nixpkgsFor.${system};
-          buildGoApplication =
-            gomod2nix.legacyPackages.${system}.buildGoApplication;
-        in {
+          buildGoApplication = gomod2nix.legacyPackages.${system}.buildGoApplication;
+          templPkg = pkgs.${templPkgName};
+        in
+        {
           todo-server = buildGoApplication {
             inherit version;
             name = "todo-server";
             src = gitignore.lib.gitignoreSource ./.;
-            go = pkgs.go_1_22;
+            go = pkgs.${goPkgName};
             # Must be added due to bug https://github.com/nix-community/gomod2nix/issues/120
             pwd = ./.;
-            CGO_ENABLED = 0;
+            CGO_ENABLED = 1;
             # https://stackoverflow.com/a/58441379/359319
             # -trimpath
             #   remove all file system paths from the resulting executable.
@@ -66,11 +79,15 @@
             #   or a plain import path (when using the standard library, or GOPATH).
             flags = [ "-trimpath" ];
             # go build -ldflags="-help" ./main.go <- will show all options
-            ldflags = [ "-s" "-w" "-extldflags -static" ];
+            ldflags = [
+              "-s"
+              "-w"
+              "-extldflags -static"
+            ];
 
             preBuild = ''
               echo "Generating code with templ ..."
-              ${templ system}/bin/templ generate
+              ${templPkg}/bin/templ generate
             '';
 
             buildPhase = ''
@@ -120,20 +137,31 @@
           #   copyToRoot = [ todo-server todo-assets ];
           #   config = { Cmd = [ "${todo-server}/bin/todo-server" ]; };
           # };
-        });
+        }
+      );
 
       # Add dependencies that are only needed for development
-      devShells = forAllSystems (system:
-        let pkgs = nixpkgsFor.${system};
-        in {
+      devShells = forAllSystems (
+        system:
+        let
+          pkgs = nixpkgsFor.${system};
+          goPkg = pkgs.${goPkgName};
+          nodePkg = pkgs.${nodePkgName};
+          templPkg = pkgs.${templPkgName};
+        in
+        {
           default = pkgs.mkShell {
-            buildInputs = with pkgs; [
-              esbuild
-              go_1_22
-              nodejs
-              tailwindcss
-              (templ system)
-            ];
+            buildInputs =
+              with pkgs;
+              [
+                esbuild
+                tailwindcss
+              ]
+              ++ [
+                goPkg
+                nodePkg
+                templPkg
+              ];
 
             packages = with pkgs; [
               air
@@ -145,23 +173,26 @@
               gopls
               gotools
               google-cloud-sdk
+              sqlite
             ];
 
             env = {
               CLOUDSDK_ACTIVE_CONFIG_NAME = "todo-plus";
               # GCP_PROJECT_ID = "todo-plus-416720";
               # GCP_IMAGE_BUCKET = "custom-server-images";
+              TEMPL_PATH = "${templPkg}/bin/templ";
             };
 
             shellHook = ''
               echo "Welcome to todo-server!"
-              echo "`${pkgs.go}/bin/go version`"
-              echo "templ: `${(templ system)}/bin/templ --version`"
-              echo "node: `${pkgs.nodejs}/bin/node --version`"
-              echo "npm: `${pkgs.nodejs}/bin/npm --version`"
+              echo "`${goPkg}/bin/go version`"
+              echo "templ: `${templPkg}/bin/templ --version`"
+              echo "node: `${nodePkg}/bin/node --version`"
+              echo "npm: `${nodePkg}/bin/npm --version`"
             '';
           };
-        });
+        }
+      );
 
       # The default package for 'nix build'. This makes sense if the
       # flake provides only one package or there is a clear "main"
@@ -170,4 +201,3 @@
       #   forAllSystems (system: self.packages.${system}.todo-server);
     };
 }
-

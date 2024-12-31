@@ -6,11 +6,18 @@ import (
 	"net/http"
 )
 
+// internal error code
+type HttpErrorCode string
+
+const InternalErrorCode HttpErrorCode = "internal"
+const BadRequestErrorCode HttpErrorCode = "bad_request"
+const NotFoundErrorCode HttpErrorCode = "not_found"
+
 type HttpError struct {
 	StatusCode int
 
-	Code    string `json:"code"`
-	Message string `json:"message"`
+	Code    HttpErrorCode `json:"code"`
+	Message string        `json:"message"`
 }
 
 func (e HttpError) Error() string {
@@ -20,12 +27,7 @@ func (e HttpError) Error() string {
 func NewHttpError(err error) HttpError {
 	switch err {
 	case io.EOF:
-		return HttpError{
-			StatusCode: http.StatusBadRequest,
-
-			Code:    "eof",
-			Message: "EOF reading HTTP request body",
-		}
+		return BadRequestError("EOF reading HTTP request body")
 		// case sql.ErrNoRows:
 		// 	return HttpError{
 		// 		StatusCode: http.StatusNotFound,
@@ -35,18 +37,29 @@ func NewHttpError(err error) HttpError {
 		// 	}
 	}
 
-	return HttpError{
-		StatusCode: http.StatusInternalServerError,
-
-		Code:    "internal",
-		Message: "Internal server error",
-	}
+	return InternalServerError(err.Error())
 }
 
 var NotFoundError = HttpError{
 	StatusCode: http.StatusNotFound,
-	Code:       "not_found",
+	Code:       NotFoundErrorCode,
 	Message:    "Page Not Found",
+}
+
+func BadRequestError(msg string) HttpError {
+	return HttpError{
+		StatusCode: http.StatusBadRequest,
+		Code:       BadRequestErrorCode,
+		Message:    msg,
+	}
+}
+
+func InternalServerError(msg string) HttpError {
+	return HttpError{
+		StatusCode: http.StatusInternalServerError,
+		Code:       InternalErrorCode,
+		Message:    msg,
+	}
 }
 
 func ErrAttr(err error) slog.Attr {

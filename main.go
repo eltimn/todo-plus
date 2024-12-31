@@ -35,14 +35,14 @@ func main() {
 
 	slog.Info("Using Assets Path", slog.String("path", assetsPath))
 
-	// init libsql db
+	// init db
 	database, err := models.OpenDB(dbUrl)
 	if err != nil {
-		slog.Error("Error connecting to libsql", errs.ErrAttr(err))
+		slog.Error("Error connecting to db", errs.ErrAttr(err))
 		os.Exit(1)
 	}
 
-	slog.Info("Connected to libsql", slog.String("url", dbUrl))
+	slog.Info("Connected to db", slog.String("url", dbUrl))
 
 	routeEnv := routes.RouteEnv{
 		Users:      models.NewUserModel(database, DefaultDatabaseTimeout),

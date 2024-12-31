@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"eltimn/todo-plus/pkg/util"
 	"fmt"
+	"log/slog"
 	"time"
 )
 
@@ -81,9 +82,13 @@ func (model *UserModel) Login(c context.Context, email string, password string) 
 	ctx, cancel := context.WithTimeout(c, model.timeout)
 	defer cancel()
 
+	slog.Info("querying with:", slog.String("email", email))
+
 	user := FullUser{}
 	query := "SELECT id, username, full_name, email, password FROM users WHERE email = ?"
 	err := model.db.QueryRowContext(ctx, query, email).Scan(&user.Id, &user.Username, &user.FullName, &user.Email, &user.Password)
+	slog.Info("queried user: %w", slog.Any("err", err))
+	slog.Info("user: %v", slog.Any("user", user))
 	if err != nil {
 		return &User{}, err
 	}

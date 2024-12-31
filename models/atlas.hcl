@@ -46,6 +46,16 @@ table "sessions" {
     null = false
     type = text
   }
+  column "count" {
+    null = false
+    type = integer
+    default = 0
+  }
+  column "is_active" {
+    null = false
+    type = boolean
+    default = true
+  }
   primary_key {
     columns = [column.id]
   }

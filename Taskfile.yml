@@ -1,5 +1,9 @@
 version: "3"
 
+# TODO: checkout this dev flow:
+# https://medium.com/ostinato-rigore/go-htmx-templ-tailwind-complete-project-setup-hot-reloading-2ca1ba6c28be
+# https://github.com/ajaen4/goth-complete-setup
+
 # for github actions
 # output:
 #   group:
@@ -16,7 +20,7 @@ tasks:
   pre-build:
     cmds:
       - mkdir -p bin
-      - go get github.com/a-h/templ
+      # - go get github.com/a-h/templ
 
   pre-css:
     cmd: mkdir -p dist/assets/css
@@ -24,8 +28,10 @@ tasks:
   pre-js:
     cmds:
       - mkdir -p dist/assets/js
-      - cp web/assets/js/htmx.min.js dist/assets/js/htmx.min.js
-      - cp web/assets/js/htmx-response-targets.min.js dist/assets/js/htmx-response-targets.min.js
+      - cp web/assets/js/datastar-0.21.4.js dist/assets/js/datastar.min.js
+      # - cp web/assets/js/datastar-0-21-3-2209181e385dd588.js dist/assets/js/datastar.min.js
+      # - cp web/assets/js/htmx.min.js dist/assets/js/htmx.min.js
+      # - cp web/assets/js/htmx-response-targets.min.js dist/assets/js/htmx-response-targets.min.js
 
   copy-images:
     cmds:
@@ -63,9 +69,10 @@ tasks:
     deps: [pre-js]
     vars:
       OPTS: '{{default "" .OPTS}}'
-    cmd: esbuild web/assets/js/main.js --outdir=dist/assets/js --bundle --target='esnext' --format=esm {{.OPTS}}
+    cmd: esbuild web/assets/js/main.mjs --outdir=dist/assets/js --bundle --target='esnext' --format=esm {{.OPTS}}
     sources:
       - web/assets/js/**/*.js
+      - web/assets/js/**/*.mjs
     generates:
       - dist/assets/js/main.js
 
@@ -82,9 +89,11 @@ tasks:
 
   clean:
     desc: Delete the bin, dist, and tmp dirs and all templ generated go files.
-    deps: [clean-go, clean-task]
     prompt: This will delete the bin, dist, and tmp dirs and all templ generated go files... Continue?
-    cmd: rm -rf dist
+    cmds:
+      - task: clean-go
+      - task: clean-task
+      - rm -rf dist
 
   clean-assets:
     desc: Delete the dist/assets dir.
@@ -140,6 +149,7 @@ tasks:
     sources:
       - "web/assets/css/**/*.css"
       - "web/assets/js/**/*.js"
+      - "web/assets/js/**/*.mjs"
     cmds:
       - task: css
       - task: js
@@ -154,12 +164,14 @@ tasks:
     desc: Watch and build the js using esbuild's watch feature.
     cmd: { task: js, vars: { OPTS: --watch } }
 
+  # For starting a libSQL http server
   db-start:
     desc: Start the database.
     # cmd: turso dev --db-file db-data/local.db --port $DB_PORT
-    cmd: sqld -d db-data/dat.db --http-listen-addr=127.0.0.1:$DB_PORT
+    cmd: sqld -d db-data/todo.db --http-listen-addr=127.0.0.1:$DB_PORT
     interactive: true
 
+  # doesn't work with local file db
   db-shell:
     desc: Open a shell to the database.
     cmd: turso db shell $DB_URL
@@ -181,3 +193,10 @@ tasks:
   docker-run:
     desc: Run the docker image.
     cmd: docker run -p $WEB_PORT:$WEB_PORT -e ASSETS_PATH='/app/assets' -e DB_URL=$DB_URL todo-plus
+
+  tidy:
+    desc: Run go mod tidy and others that are required to follow.
+    cmds:
+      - go mod tidy
+      - templ generate
+      - gomod2nix

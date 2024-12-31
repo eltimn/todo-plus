@@ -12,6 +12,18 @@ import (
 
 const SessionDuration = 24 * time.Hour
 
+type Session struct {
+	Id       string
+	UserId   int64
+	Expires  time.Time
+	Count    int64
+	IsActive bool
+}
+
+func (s Session) IsExpired() bool {
+	return s.Expires.Before(time.Now())
+}
+
 type SessionModel struct {
 	db      *sql.DB
 	timeout time.Duration
@@ -19,16 +31,6 @@ type SessionModel struct {
 
 func NewSessionModel(db *sql.DB, timeout time.Duration) *SessionModel {
 	return &SessionModel{db: db, timeout: timeout}
-}
-
-type Session struct {
-	Id      string
-	UserId  int64
-	Expires time.Time
-}
-
-func (s Session) IsExpired() bool {
-	return s.Expires.Before(time.Now())
 }
 
 func (model *SessionModel) CreateNewSession(c context.Context, userId int64) (*Session, error) {
@@ -68,7 +70,7 @@ func (model *SessionModel) GetById(c context.Context, sessionId string) (*Sessio
 
 	var session Session
 	var expires string
-	err := model.db.QueryRowContext(ctx, "SELECT id, user_id, expires FROM sessions WHERE id = ?", sessionId).Scan(&session.Id, &session.UserId, &expires)
+	err := model.db.QueryRowContext(ctx, "SELECT id, user_id, expires, count, is_active FROM sessions WHERE id = ?", sessionId).Scan(&session.Id, &session.UserId, &expires, &session.Count, &session.IsActive)
 	if err != nil {
 		return &Session{}, err
 	}
@@ -78,7 +80,35 @@ func (model *SessionModel) GetById(c context.Context, sessionId string) (*Sessio
 		return &Session{}, fmt.Errorf("error converting string into time: %w", err)
 	}
 
+	// TODO: check if it's expired
+	// TODO: check if it's active
+
 	session.Expires = t
 
 	return &session, nil
+}
+
+func (model *SessionModel) GetCount(c context.Context, session *Session) (int64, error) {
+	ctx, cancel := context.WithTimeout(c, model.timeout)
+	defer cancel()
+
+	var count int64
+	err := db.QueryRowContext(ctx, "SELECT count FROM session WHERE user_id = ?", session.UserId).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+func (model *SessionModel) SetCount(c context.Context, session *Session, count int64) error {
+	ctx, cancel := context.WithTimeout(c, model.timeout)
+	defer cancel()
+
+	err := ExecOneContext(ctx, "UPDATE session SET count = ? WHERE id = ?", session.Id, count)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
