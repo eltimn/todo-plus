@@ -76,16 +76,12 @@ templ Login(user *models.User, signals *LoginSignals) {
 				</div>
 				<script type="text/javascript" defer>
           document.addEventListener('DOMContentLoaded', () => {
-            console.info('login page')
             window.Todo.forms.submitListener('#login_form', resp => {
-              console.log("resp:", resp)
-
               if (resp.ok) {
                 window.location.replace("/")
               } else {
                 const $loginError = document.querySelector("#login_error");
                 $loginError.innerHTML = `<p class="error">${resp.error}</p>`
-                console.log(resp.error)
               }
             })
           })

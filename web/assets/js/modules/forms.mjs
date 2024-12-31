@@ -1,4 +1,3 @@
-
 function submitListener(formSelector, callback) {
   const $form = document.querySelector(formSelector)
 
@@ -18,12 +17,9 @@ function submitListener(formSelector, callback) {
         body: searchParams
       })
 
-      console.info("resp:", resp)
-
       // if it's a bad response, try to extract the error from the returned json
       if (!resp.ok) {
         const respJson = await resp.json()
-        console.info("respJson:", respJson)
         if ('error' in respJson) {
           callback({
             ok: false,
