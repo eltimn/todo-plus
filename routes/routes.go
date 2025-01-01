@@ -36,10 +36,6 @@ func Routes(env *RouteEnv) *router.Router {
 		isSecure: env.IsSecure,
 	}
 
-	counterEnv := &counterEnv{
-		sessions: env.Sessions,
-	}
-
 	rtr := router.NewRouter(router.WithErrorHandler(handleHttpError))
 	rtr.Use(sessionMiddleware(userEnv))
 
@@ -49,7 +45,7 @@ func Routes(env *RouteEnv) *router.Router {
 
 	userRoutes(rtr, userEnv)
 	todoRoutes(rtr, env.Todos)
-	counterRoutes(rtr, counterEnv)
+	counterRoutes(rtr)
 
 	rtr.Get("/hello", helloHandler)
 	rtr.Get("/now", nowHandler)

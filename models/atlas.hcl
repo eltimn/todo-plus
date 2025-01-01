@@ -32,38 +32,28 @@ table "users" {
     columns = [column.username]
   }
 }
+
 table "sessions" {
   schema = schema.main
   column "id" {
-    null = true
-    type = text
-  }
-  column "user_id" {
-    null = false
-    type = integer
-  }
-  column "expires" {
     null = false
     type = text
   }
-  column "count" {
+  column "time_accessed" {
     null = false
-    type = integer
-    default = 0
+    type = text
   }
-  column "is_active" {
+  column "value" {
+    null = false
+    type = text
+  }
+  column "is_deleted" {
     null = false
     type = boolean
-    default = true
+    default = false
   }
   primary_key {
     columns = [column.id]
-  }
-  foreign_key "0" {
-    columns     = [column.user_id]
-    ref_columns = [table.users.column.id]
-    on_update   = CASCADE
-    on_delete   = RESTRICT
   }
 }
 

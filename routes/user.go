@@ -6,18 +6,18 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"time"
 
 	"eltimn/todo-plus/models"
 	"eltimn/todo-plus/pkg/errs"
 	"eltimn/todo-plus/pkg/router"
-	"eltimn/todo-plus/pkg/util"
+	"eltimn/todo-plus/pkg/session"
 	"eltimn/todo-plus/web/pages/user"
 
 	datastar "github.com/starfederation/datastar/sdk/go"
 )
 
 const SessionCookieName = "sessionId"
+const SessionUserIdKey = "UserId"
 
 type userEnv struct {
 	users interface {
@@ -27,8 +27,7 @@ type userEnv struct {
 	}
 
 	sessions interface {
-		CreateNewSession(c context.Context, userId int64) (*models.Session, error)
-		GetById(c context.Context, sessionId string) (*models.Session, error)
+		UpdateSession(c context.Context, sessionId string, value map[string]interface{}) error
 	}
 
 	isSecure bool
@@ -46,7 +45,6 @@ func (env *userEnv) loginSubmit(rw http.ResponseWriter, req *http.Request) error
 	if err != nil {
 		return handleLoginError(rw, err)
 	}
-	fmt.Println("POST")
 
 	email := req.PostFormValue("email")
 	slog.Debug("email", slog.String("email", email))
@@ -58,11 +56,8 @@ func (env *userEnv) loginSubmit(rw http.ResponseWriter, req *http.Request) error
 		return handleLoginError(rw, err)
 	}
 
-	session, err := env.sessions.CreateNewSession(req.Context(), usr.Id)
-	if err != nil {
-		return handleLoginError(rw, err)
-	}
-	setSessionCookie(rw, session.Id, session.Expires, env.isSecure)
+	sess := contextSession(req)
+	sess.Set(SessionUserIdKey, usr.Id)
 
 	slog.Info("User logged in", slog.String("username", usr.Username))
 
@@ -131,8 +126,8 @@ func (env *userEnv) loginDSGet(rw http.ResponseWriter, req *http.Request) error 
 }
 
 func (env *userEnv) logout(rw http.ResponseWriter, req *http.Request) error {
-	// delete the cookie
-	deleteSessionCookie(rw, env.isSecure)
+	// destroy the session
+	session.Mgr.SessionDestroy(rw, req)
 	// util.HxRedirect(rw, "/")
 	http.Redirect(rw, req, "/", http.StatusSeeOther)
 	return nil
@@ -160,15 +155,13 @@ func (env *userEnv) signupSubmit(rw http.ResponseWriter, req *http.Request) erro
 
 	slog.Info("User created", slog.String("username", user.Username))
 
-	session, err := env.sessions.CreateNewSession(req.Context(), user.Id)
-	if err != nil {
-		return err
-	}
-	setSessionCookie(rw, session.Id, session.Expires, env.isSecure)
+	sess := contextSession(req)
+	sess.Set(SessionUserIdKey, user.Id)
 
 	slog.Info("User logged in", slog.String("username", user.Username))
 
-	util.HxRedirect(rw, "/")
+	// util.HxRedirect(rw, "/")
+	http.Redirect(rw, req, "/", http.StatusSeeOther)
 	return nil
 }
 
@@ -185,10 +178,10 @@ func userRoutes(rtr *router.Router, env *userEnv) {
 	})
 }
 
-func contextSession(req *http.Request) *models.Session {
-	sess, ok := req.Context().Value(ContextSessionKey).(*models.Session)
+func contextSession(req *http.Request) session.Session {
+	sess, ok := req.Context().Value(ContextSessionKey).(session.Session)
 	if !ok {
-		return &models.Session{}
+		return nil
 	}
 	return sess
 }
@@ -201,60 +194,32 @@ func contextUser(req *http.Request) *models.User {
 	return user
 }
 
-func setSessionCookie(rw http.ResponseWriter, sessionId string, expires time.Time, isSecure bool) {
-	http.SetCookie(rw, &http.Cookie{
-		Name:     SessionCookieName,
-		Value:    sessionId,
-		Path:     "/",
-		Secure:   isSecure,
-		HttpOnly: true,
-		Expires:  expires,
-	})
-}
-
-func deleteSessionCookie(rw http.ResponseWriter, isSecure bool) {
-	http.SetCookie(rw, &http.Cookie{
-		Name:     SessionCookieName,
-		Value:    "",
-		Path:     "/",
-		Secure:   isSecure,
-		HttpOnly: true,
-		Expires:  time.Now(),
-	})
-}
-
 func sessionMiddleware(env *userEnv) router.Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-			// get the cookie value from the request
-			cookie, err := req.Cookie(SessionCookieName)
-			if err != nil {
-				slog.Debug("Session cookie not found", errs.ErrAttr(err))
-				next.ServeHTTP(rw, req)
-				return
-			}
-
-			slog.Debug("SessionId", slog.String("sessionId", cookie.Value))
-
-			// get the session from the database
-			session, err := env.sessions.GetById(req.Context(), cookie.Value)
-			if err != nil {
-				slog.Warn("Session not found in the database", errs.ErrAttr(err))
-				next.ServeHTTP(rw, req)
-				return
-			}
+			// start a session
+			sess := session.Mgr.SessionStart(rw, req)
 
 			// add the session to the request context
-			ctx := context.WithValue(req.Context(), ContextSessionKey, session)
+			ctx := context.WithValue(req.Context(), ContextSessionKey, sess)
 
-			// get the user from the database
-			user, err := env.users.GetById(req.Context(), session.UserId)
-			if err != nil {
-				slog.Debug("Error fetching user", errs.ErrAttr(err))
-			} else {
-				// add the user to the request context
-				ctx = context.WithValue(ctx, ContextUserKey, user)
-				ctx = context.WithValue(ctx, ContextIsLoggedInKey, true)
+			// check if there's a UserId in the session
+			var userId int64
+			userIdFloat, ok := sess.Get(SessionUserIdKey).(float64)
+			if ok {
+				userId = int64(userIdFloat)
+			}
+
+			if userId != 0 {
+				// get the user from the database
+				user, err := env.users.GetById(req.Context(), userId)
+				if err != nil {
+					slog.Debug("Error fetching user", errs.ErrAttr(err))
+				} else {
+					// add the user to the request context
+					ctx = context.WithValue(ctx, ContextUserKey, user)
+					ctx = context.WithValue(ctx, ContextIsLoggedInKey, true)
+				}
 			}
 
 			next.ServeHTTP(rw, req.WithContext(ctx))

@@ -13,6 +13,10 @@ import (
 	"eltimn/todo-plus/logging"
 	"eltimn/todo-plus/models"
 	"eltimn/todo-plus/pkg/errs"
+	"eltimn/todo-plus/pkg/session"
+
+	// _ "eltimn/todo-plus/pkg/session/providers/memory"
+	"eltimn/todo-plus/pkg/session/providers/sqlite"
 	"eltimn/todo-plus/pkg/util"
 	"eltimn/todo-plus/routes"
 )
@@ -52,11 +56,20 @@ func main() {
 		AssetsPath: assetsPath,
 	}
 
+	// init the sqlite session provider
+	sqlite.Init(routeEnv.Sessions)
+
+	// init session manager
+	err = session.Init("sqlite", routes.SessionCookieName, routeEnv.IsSecure)
+	if err != nil {
+		slog.Error("Error initing session manager", errs.ErrAttr(err))
+		os.Exit(1)
+	}
+
 	// create router
 	router := routes.Routes(&routeEnv)
 
 	// start server
-	// https://dev.to/mokiat/proper-http-shutdown-in-go-3fji
 	server := &http.Server{
 		Addr:    listenAddress,
 		Handler: router.ServeMux,
@@ -64,6 +77,7 @@ func main() {
 
 	slog.Info("Server starting", "listen", listenAddress)
 
+	// https://dev.to/mokiat/proper-http-shutdown-in-go-3fji
 	go func() {
 		if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 			slog.Error("HTTP server error", errs.ErrAttr(err))
