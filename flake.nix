@@ -2,14 +2,15 @@
   description = "Todo+ Application";
 
   inputs = {
-    nixpkgs.url = "nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
 
-    # templ = {
-    #   url = "github:a-h/templ/v0.2.590";
-    #   inputs = {
-    #     nixpkgs.follows = "nixpkgs";
-    #   };
-    # };
+    templ = {
+      url = "github:a-h/templ/v0.3.819";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+      };
+    };
 
     gitignore = {
       url = "github:hercules-ci/gitignore.nix";
@@ -26,12 +27,12 @@
     {
       self,
       nixpkgs,
+      nixpkgs-unstable,
+      templ,
       gitignore,
       gomod2nix,
     }:
     let
-      # templ = system: self.inputs.templ.packages.${system}.templ;
-
       # to work with older version of flakes
       lastModifiedDate = self.lastModifiedDate or self.lastModified or "19700101";
 
@@ -42,25 +43,31 @@
       supportedSystems = [ "x86_64-linux" ];
       # [ "x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin" ];
 
-      # Helper function to generate an attrset '{ x86_64-linux = f "x86_64-linux"; ... }'.
-      forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
-
       #   goVersion = 22; # Change this to update the whole stack
       #   overlays = [ (final: prev: { go = prev."go_1_${toString goVersion}"; }) ];
-      # Nixpkgs instantiated for supported system types.
-      nixpkgsFor = forAllSystems (system: import nixpkgs { inherit system; });
+
+      forAllSystems =
+        f:
+        nixpkgs.lib.genAttrs supportedSystems (
+          system:
+          f {
+            inherit system;
+            pkgs = import nixpkgs { inherit system; };
+            pkgs-unstable = import nixpkgs-unstable { inherit system; };
+          }
+        );
+
+      templForSystem = system: templ.packages.${system}.templ;
 
       goPkgName = "go"; # 1.23
       nodePkgName = "nodejs_22";
-      templPkgName = "templ";
     in
     {
       packages = forAllSystems (
-        system:
+        { system, pkgs, ... }:
         let
-          pkgs = nixpkgsFor.${system};
           buildGoApplication = gomod2nix.legacyPackages.${system}.buildGoApplication;
-          templPkg = pkgs.${templPkgName};
+          templPkg = templForSystem (system);
         in
         {
           todo-server = buildGoApplication {
@@ -140,57 +147,61 @@
         }
       );
 
-      # Add dependencies that are only needed for development
-      devShells = forAllSystems (
-        system:
+      devShell = forAllSystems (
+        {
+          system,
+          pkgs,
+          pkgs-unstable,
+          ...
+        }:
         let
-          pkgs = nixpkgsFor.${system};
           goPkg = pkgs.${goPkgName};
           nodePkg = pkgs.${nodePkgName};
-          templPkg = pkgs.${templPkgName};
+          templPkg = templForSystem (system);
         in
-        {
-          default = pkgs.mkShell {
-            buildInputs =
-              with pkgs;
-              [
-                esbuild
-                tailwindcss
-              ]
-              ++ [
-                goPkg
-                nodePkg
-                templPkg
-              ];
+        pkgs.mkShell {
+          buildInputs =
+            with pkgs;
+            [
+              esbuild
+              tailwindcss
+            ]
+            ++ [
+              goPkg
+              nodePkg
+              templPkg
+            ];
 
-            packages = with pkgs; [
+          packages =
+            with pkgs;
+            [
               air
               atlas
               go-task
               go-tools
               golangci-lint
               gomod2nix.legacyPackages.${system}.gomod2nix
-              gopls
               gotools
               google-cloud-sdk
               sqlite
-            ];
+            ]
+            ++ [ pkgs-unstable.gopls ];
 
-            env = {
-              CLOUDSDK_ACTIVE_CONFIG_NAME = "todo-plus";
-              # GCP_PROJECT_ID = "todo-plus-416720";
-              # GCP_IMAGE_BUCKET = "custom-server-images";
-              TEMPL_PATH = "${templPkg}/bin/templ";
-            };
-
-            shellHook = ''
-              echo "Welcome to todo-server!"
-              echo "`${goPkg}/bin/go version`"
-              echo "templ: `${templPkg}/bin/templ --version`"
-              echo "node: `${nodePkg}/bin/node --version`"
-              echo "npm: `${nodePkg}/bin/npm --version`"
-            '';
+          env = {
+            CLOUDSDK_ACTIVE_CONFIG_NAME = "todo-plus";
+            # GCP_PROJECT_ID = "todo-plus-416720";
+            # GCP_IMAGE_BUCKET = "custom-server-images";
+            TEMPL_PATH = "${templPkg}/bin/templ";
+            CGO_ENABLED = 1;
           };
+
+          shellHook = ''
+            echo "Welcome to todo-server!"
+            echo "`${goPkg}/bin/go version`"
+            echo "templ: `${templPkg}/bin/templ --version`"
+            echo "node: `${nodePkg}/bin/node --version`"
+            echo "npm: `${nodePkg}/bin/npm --version`"
+          '';
         }
       );
 

@@ -27,9 +27,9 @@ func CloseDB() error {
 	return db.Close()
 }
 
-type Env struct {
-	users UserModel
-}
+// type Env struct {
+// 	users UserModel
+// }
 
 // Same as ExecContext, but checks that only one row was affected
 func ExecOneContext(ctx context.Context, query string, args ...any) error {

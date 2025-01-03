@@ -65,3 +65,13 @@ func InternalServerError(msg string) HttpError {
 func ErrAttr(err error) slog.Attr {
 	return slog.Any("error", err)
 }
+
+type UserError string
+
+func (e UserError) Error() string {
+	return string(e)
+}
+
+var UserNotFoundError UserError = "User not found."
+var PasswordMisMatchError UserError = "Passwords must match."
+var InvalidCredentialsError UserError = "Login failed."

@@ -5,11 +5,11 @@ schema = 3
     version = "v2.7.0"
     hash = "sha256-Rkj6nOJ2I77baOfbXtqGVJF/WcLyn7cGqYthOZGV5Xk="
   [mod."github.com/a-h/templ"]
-    version = "v0.2.793"
-    hash = "sha256-WThPVkb56osTrMJZf0WIoqbsM9DHGaZsG47MS0eoseA="
+    version = "v0.3.819"
+    hash = "sha256-uqoJL8B3IVk2snUdb3xOiiEiK6WGpIrl0VsuKpRkz8Y="
   [mod."github.com/antlr4-go/antlr/v4"]
-    version = "v4.13.0"
-    hash = "sha256-98nKVlsgv1S7vMvGuKOQINOKkiEvrlX5DCSmyr6Mr+A="
+    version = "v4.13.1"
+    hash = "sha256-beAuxHNRUuhzcSJUh/8ztVf1zCUiaT72fg2Jvx0AuNQ="
   [mod."github.com/delaneyj/gostar"]
     version = "v0.8.0"
     hash = "sha256-K0nm/OxEq4e3FLfUqOawMHIGkHZV69B3qJyBcLY4E9A="
@@ -20,8 +20,8 @@ schema = 3
     version = "v2.0.1"
     hash = "sha256-4YFMjPiznVpQwBwBBb6SkhuNEgTHf84eZMWnGiD0RS8="
   [mod."github.com/libsql/sqlite-antlr4-parser"]
-    version = "v0.0.0-20240327125255-dbf53b6cbf06"
-    hash = "sha256-M6o/wDxJ6G47Ae4oIpkhd3n5H3PkCSmY+HHcTTlEB7E="
+    version = "v0.0.0-20240721121621-c0bdc870f11c"
+    hash = "sha256-kcH5cXCjhV9gV1Mf56RqsFdgkunaKV6qbuoNyTzRWBY="
   [mod."github.com/samber/lo"]
     version = "v1.47.0"
     hash = "sha256-jMXexVTlPdZ40STRpBLv7b+BIRqdxxra12Pl2Mj7Nz8="
@@ -29,7 +29,7 @@ schema = 3
     version = "v1.0.4"
     hash = "sha256-50molk1vt8/n4Y+ruayW/EAn9NeeQ8ApmLJQVePhieE="
   [mod."github.com/tursodatabase/go-libsql"]
-    version = "v0.0.0-20241113154718-293fe7f21b08"
+    version = "v0.0.0-20241221181756-6121e81fbf92"
     hash = "sha256-Kpu+PYu/k4+1JrvabDPQkt07YywM+SPEYLHZ1eCarmA="
   [mod."github.com/valyala/bytebufferpool"]
     version = "v1.0.0"

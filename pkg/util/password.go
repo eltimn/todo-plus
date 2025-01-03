@@ -3,6 +3,8 @@ package util
 import (
 	"fmt"
 
+	"eltimn/todo-plus/pkg/errs"
+
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -18,7 +20,7 @@ func HashPassword(password string) (string, error) {
 func CheckPassword(hashedPassword, password string) error {
 	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 	if err != nil {
-		return fmt.Errorf("password does not match: %w", err)
+		return errs.InvalidCredentialsError
 	}
 
 	return nil

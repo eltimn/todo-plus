@@ -25,28 +25,28 @@ templ Home(user *models.User) {
 templ quiz() {
 	<div
 		data-signals="{response: '', answer: 'bread'}"
-		data-computed-correct="response.value.toLowerCase() == answer.value"
+		data-computed-correct="$response.toLowerCase() == $answer"
 	>
 		<div id="question"></div>
 		@components.Button("submit", templ.Attributes{
 			"data-on-click":            datastar.GetSSE("/quiz"),
 			"data-indicator":           "fetching",
-			"data-attributes-disabled": "fetching.value",
+			"data-attributes-disabled": "$fetching",
 		}) {
 			<span>Fetch a question</span>
 		}
-		<div data-show="fetching.value">Loading...</div>
+		<div data-show="$fetching">Loading...</div>
 		@components.Button("submit", templ.Attributes{
-			"data-show":     "answer.value != ''",
-			"data-on-click": "response.value = prompt('Answer:') ?? ''",
+			"data-show":     "$answer != ''",
+			"data-on-click": "$response = prompt('Answer:') ?? ''",
 		}) {
 			<span>BUZZ</span>
 		}
-		<div data-show="response.value != ''">
-			You answered <span data-text="response.value"></span>.
-			<span data-show="correct.value">That is correct ✅</span>
-			<span data-show="!correct.value">
-				The correct answer is: <span data-text="answer.value"></span>
+		<div data-show="$response != ''">
+			You answered <span data-text="$response"></span>.
+			<span data-show="$correct">That is correct ✅</span>
+			<span data-show="!$correct">
+				The correct answer is: <span data-text="$answer"></span>
 			</span>
 		</div>
 	</div>

@@ -28,7 +28,9 @@ tasks:
   pre-js:
     cmds:
       - mkdir -p dist/assets/js
-      - cp web/assets/js/datastar-0.21.4.js dist/assets/js/datastar.min.js
+      # - cp web/assets/js/datastar-0.21.4.js dist/assets/js/datastar.min.js
+      - cp web/assets/js/datastar-1.0.0-beta.1.js dist/assets/js/datastar.min.js
+      # - cp web/assets/js/datastar.js.map dist/assets/js/datastar.js.map
       # - cp web/assets/js/datastar-0-21-3-2209181e385dd588.js dist/assets/js/datastar.min.js
       # - cp web/assets/js/htmx.min.js dist/assets/js/htmx.min.js
       # - cp web/assets/js/htmx-response-targets.min.js dist/assets/js/htmx-response-targets.min.js
@@ -97,6 +99,7 @@ tasks:
 
   clean-assets:
     desc: Delete the dist/assets dir.
+    deps: [clean-task]
     cmd: rm -rf dist/assets
 
   clean-css:

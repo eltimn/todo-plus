@@ -2,6 +2,7 @@ package routes
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -101,12 +102,23 @@ func (env *userEnv) loginDSPost(rw http.ResponseWriter, req *http.Request) error
 	password := req.PostFormValue("password")
 	slog.Debug("password", slog.String("password", password))
 
-	b, err := json.Marshal(req.Form)
-	if err != nil {
-		return errs.InternalServerError("Failed to encode form data as JSON")
+	// try logging the user in
+	usr, err := env.users.Login(req.Context(), email, password)
+	switch {
+	case err == sql.ErrNoRows:
+		return errs.UserNotFoundError
+	case err != nil:
+		return errs.BadRequestError(err.Error())
+	default:
 	}
+
+	sess := contextSession(req)
+	sess.Set(SessionUserIdKey, usr.Id)
+
+	slog.Debug("User logged in", slog.String("username", usr.Username))
+
 	sse := datastar.NewSSE(rw, req)
-	return sse.ExecuteScript(fmt.Sprintf(`alert('Form data received via POST request: %s')`, string(b)))
+	return sse.ExecuteScript("location.replace('/')")
 }
 
 func (env *userEnv) loginDSGet(rw http.ResponseWriter, req *http.Request) error {
