@@ -56,7 +56,7 @@
     "gitignore_2": {
       "inputs": {
         "nixpkgs": [
-          "templ",
+          "templ-flake",
           "nixpkgs"
         ]
       },
@@ -149,7 +149,7 @@
         "gomod2nix": "gomod2nix",
         "nixpkgs": "nixpkgs",
         "nixpkgs-unstable": "nixpkgs-unstable",
-        "templ": "templ"
+        "templ-flake": "templ-flake"
       }
     },
     "systems": {
@@ -167,7 +167,7 @@
         "type": "github"
       }
     },
-    "templ": {
+    "templ-flake": {
       "inputs": {
         "gitignore": "gitignore_2",
         "nixpkgs": [
@@ -195,7 +195,7 @@
       "inputs": {
         "flake-utils": "flake-utils_2",
         "nixpkgs": [
-          "templ",
+          "templ-flake",
           "nixpkgs"
         ]
       },

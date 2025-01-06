@@ -5,11 +5,9 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
 
-    templ = {
+    templ-flake = {
       url = "github:a-h/templ/v0.3.819";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-      };
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     gitignore = {
@@ -28,7 +26,7 @@
       self,
       nixpkgs,
       nixpkgs-unstable,
-      templ,
+      templ-flake,
       gitignore,
       gomod2nix,
     }:
@@ -43,31 +41,60 @@
       supportedSystems = [ "x86_64-linux" ];
       # [ "x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin" ];
 
-      #   goVersion = 22; # Change this to update the whole stack
-      #   overlays = [ (final: prev: { go = prev."go_1_${toString goVersion}"; }) ];
-
       forAllSystems =
         f:
         nixpkgs.lib.genAttrs supportedSystems (
           system:
           f {
             inherit system;
-            pkgs = import nixpkgs { inherit system; };
-            pkgs-unstable = import nixpkgs-unstable { inherit system; };
+            pkgs = import nixpkgs {
+              inherit system;
+              overlays = [ self.overlays.default ];
+            };
+            pkgs-unstable = import nixpkgs-unstable {
+              inherit system;
+              overlays = [ self.overlays.default ];
+            };
           }
         );
 
-      templForSystem = system: templ.packages.${system}.templ;
+      templForSystem = system: templ-flake.packages.${system}.templ;
 
+      # go_1_23 doesn't exist
+      # goPkgName = (
+      #   let
+      #     goVersion = 23; # Change this to update the whole stack
+      #   in
+      #   "go_1_${toString goVersion}"
+      # );
       goPkgName = "go"; # 1.23
-      nodePkgName = "nodejs_22";
+
+      # check for a node-version file and use that if it exists
+      nodePkgName = (
+        let
+          nodeVersionPath = ./.node-version;
+        in
+        if builtins.pathExists nodeVersionPath then
+          let
+            nodeVersion = builtins.readFile nodeVersionPath;
+          in
+          "nodejs_${nodeVersion}"
+        else
+          "nodejs"
+      );
     in
     {
+      # overlays to use a specific version as the main package
+      overlays.default = final: prev: {
+        nodejs = prev.${nodePkgName};
+        go = prev.${goPkgName};
+      };
+
       packages = forAllSystems (
         { system, pkgs, ... }:
         let
           buildGoApplication = gomod2nix.legacyPackages.${system}.buildGoApplication;
-          templPkg = templForSystem (system);
+          templPkg = templForSystem system;
         in
         {
           todo-server = buildGoApplication {
@@ -156,19 +183,18 @@
         }:
         let
           goPkg = pkgs.${goPkgName};
-          nodePkg = pkgs.${nodePkgName};
-          templPkg = templForSystem (system);
+          templPkg = templForSystem system;
         in
         pkgs.mkShell {
           buildInputs =
             with pkgs;
             [
               esbuild
+              nodejs
               tailwindcss
             ]
             ++ [
               goPkg
-              nodePkg
               templPkg
             ];
 
@@ -192,15 +218,15 @@
             # GCP_PROJECT_ID = "todo-plus-416720";
             # GCP_IMAGE_BUCKET = "custom-server-images";
             TEMPL_PATH = "${templPkg}/bin/templ";
-            CGO_ENABLED = 1;
+            CGO_ENABLED = 1; # needed for sqlite driver
           };
 
           shellHook = ''
             echo "Welcome to todo-server!"
             echo "`${goPkg}/bin/go version`"
             echo "templ: `${templPkg}/bin/templ --version`"
-            echo "node: `${nodePkg}/bin/node --version`"
-            echo "npm: `${nodePkg}/bin/npm --version`"
+            echo "node: `${pkgs.nodejs}/bin/node --version`"
+            echo "npm: `${pkgs.nodejs}/bin/npm --version`"
           '';
         }
       );
