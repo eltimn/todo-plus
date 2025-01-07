@@ -58,8 +58,6 @@
           }
         );
 
-      templForSystem = system: templ-flake.packages.${system}.templ;
-
       # go_1_23 doesn't exist
       # goPkgName = (
       #   let
@@ -84,24 +82,26 @@
       );
     in
     {
-      # overlays to use a specific version as the main package
+      # Overlays to use a specific version as the main package. e.g use `pkgs.go` to refer to `pkgs.go_1_23`.
+      # Also some flakes and other misc things that are referred to differently than regular packages.
       overlays.default = final: prev: {
         nodejs = prev.${nodePkgName};
         go = prev.${goPkgName};
+        templ = templ-flake.packages.${prev.system}.templ;
+        gomod2nix = gomod2nix.legacyPackages.${prev.system}.gomod2nix;
       };
 
       packages = forAllSystems (
         { system, pkgs, ... }:
         let
           buildGoApplication = gomod2nix.legacyPackages.${system}.buildGoApplication;
-          templPkg = templForSystem system;
         in
         {
           todo-server = buildGoApplication {
             inherit version;
             name = "todo-server";
             src = gitignore.lib.gitignoreSource ./.;
-            go = pkgs.${goPkgName};
+            go = pkgs.go;
             # Must be added due to bug https://github.com/nix-community/gomod2nix/issues/120
             pwd = ./.;
             CGO_ENABLED = 1;
@@ -121,7 +121,7 @@
 
             preBuild = ''
               echo "Generating code with templ ..."
-              ${templPkg}/bin/templ generate
+              ${pkgs.templ}/bin/templ generate
             '';
 
             buildPhase = ''
@@ -181,22 +181,14 @@
           pkgs-unstable,
           ...
         }:
-        let
-          goPkg = pkgs.${goPkgName};
-          templPkg = templForSystem system;
-        in
         pkgs.mkShell {
-          buildInputs =
-            with pkgs;
-            [
-              esbuild
-              nodejs
-              tailwindcss
-            ]
-            ++ [
-              goPkg
-              templPkg
-            ];
+          buildInputs = with pkgs; [
+            esbuild
+            go
+            nodejs
+            tailwindcss
+            templ
+          ];
 
           packages =
             with pkgs;
@@ -206,7 +198,7 @@
               go-task
               go-tools
               golangci-lint
-              gomod2nix.legacyPackages.${system}.gomod2nix
+              gomod2nix
               gotools
               google-cloud-sdk
               sqlite
@@ -217,14 +209,14 @@
             CLOUDSDK_ACTIVE_CONFIG_NAME = "todo-plus";
             # GCP_PROJECT_ID = "todo-plus-416720";
             # GCP_IMAGE_BUCKET = "custom-server-images";
-            TEMPL_PATH = "${templPkg}/bin/templ";
+            TEMPL_PATH = "${pkgs.templ}/bin/templ";
             CGO_ENABLED = 1; # needed for sqlite driver
           };
 
           shellHook = ''
             echo "Welcome to todo-server!"
-            echo "`${goPkg}/bin/go version`"
-            echo "templ: `${templPkg}/bin/templ --version`"
+            echo "`${pkgs.go}/bin/go version`"
+            echo "templ: `${pkgs.templ}/bin/templ --version`"
             echo "node: `${pkgs.nodejs}/bin/node --version`"
             echo "npm: `${pkgs.nodejs}/bin/npm --version`"
           '';
