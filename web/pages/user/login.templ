@@ -11,8 +11,8 @@ type LoginSignals struct {
 	Password string `json:"password"`
 }
 
-templ Login(user *models.User, signals *LoginSignals) {
-	@layouts.TailwindUILayout(user) {
+templ Login(user *models.User, signals *LoginSignals, nonce string) {
+	@layouts.TailwindUILayout(user, nonce) {
 		if user.IsLoggedIn() {
 			<p>You are already logged in.</p>
 			<p><a href="/">Go to the home page</a></p>
@@ -23,8 +23,8 @@ templ Login(user *models.User, signals *LoginSignals) {
 				</div>
 				<div class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
 					<div id="login_error" class="error"></div>
-					<form class="space-y-6" id="login_form" data-on-submit="@post('/user/login-ds', {contentType: 'form'})">
-						// <form class="space-y-6" id="login_form" method="post" action="/user/login">
+					// <form class="space-y-6" id="login_form" data-on-submit="@post('/user/login-ds', {contentType: 'form'})">
+					<form class="space-y-6" id="login_form" method="post" action="/user/login">
 						<div>
 							<label for="email" class="block text-sm font-medium leading-6 text-gray-900">Email address</label>
 							<div class="mt-2">
@@ -74,18 +74,18 @@ templ Login(user *models.User, signals *LoginSignals) {
 						<a href="/user/signup" class="font-semibold leading-6 text-indigo-600 hover:text-indigo-500">Sign up now</a>
 					</p>
 				</div>
-				// <script type="text/javascript" defer>
-				//   document.addEventListener('DOMContentLoaded', () => {
-				//     window.Todo.forms.submitListener('#login_form', resp => {
-				//       if (resp.ok) {
-				//         window.location.replace("/")
-				//       } else {
-				//         const $loginError = document.querySelector("#login_error");
-				//         $loginError.innerHTML = `<p class="error">${resp.error}</p>`
-				//       }
-				//     })
-				//   })
-				// </script>
+				<script type="text/javascript" defer nonce={ nonce }>
+				  document.addEventListener('DOMContentLoaded', () => {
+				    window.Todo.forms.submitListener('#login_form', resp => {
+				      if (resp.ok) {
+				        window.location.replace("/")
+				      } else {
+				        const $loginError = document.querySelector("#login_error");
+				        $loginError.innerHTML = `<p class="error">${resp.error}</p>`
+				      }
+				    })
+				  })
+				</script>
 			</div>
 		}
 	}

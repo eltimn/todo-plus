@@ -1,8 +1,8 @@
 package todo
 
 import (
-	"eltimn/todo-plus/web/layouts"
 	"eltimn/todo-plus/models"
+	"eltimn/todo-plus/web/layouts"
 )
 
 templ TodoApp(user *models.User, todos []models.Todo, activeCount int) {
@@ -15,8 +15,8 @@ templ TodoApp(user *models.User, todos []models.Todo, activeCount int) {
 	</section>
 }
 
-templ TodoAppPage(user *models.User, todos []models.Todo, activeCount int) {
-	@layouts.TailwindUILayout(user) {
+templ TodoAppPage(user *models.User, todos []models.Todo, activeCount int, nonce string) {
+	@layouts.TailwindUILayout(user, nonce) {
 		@TodoApp(user, todos, activeCount)
 	}
 }

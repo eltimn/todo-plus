@@ -52,8 +52,8 @@ templ quiz() {
 	</div>
 }
 
-templ HomePage(user *models.User) {
-	@layouts.TailwindUILayout(user) {
+templ HomePage(user *models.User, nonce string) {
+	@layouts.TailwindUILayout(user, nonce) {
 		@Home(user)
 		@quiz()
 	}

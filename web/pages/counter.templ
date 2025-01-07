@@ -50,8 +50,8 @@ templ CounterPartial(signals TemplCounterSignals) {
 	</div>
 }
 
-templ CounterPage(user *models.User, signals TemplCounterSignals) {
-	@layouts.TailwindUILayout(user) {
+templ CounterPage(user *models.User, signals TemplCounterSignals, nonce string) {
+	@layouts.TailwindUILayout(user, nonce) {
 		@CounterPartial(signals)
 	}
 }

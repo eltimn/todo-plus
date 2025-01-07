@@ -9,8 +9,8 @@ templ ErrorPartial(err error) {
 	<div id="error_container" class="error">Error: { err.Error() }</div>
 }
 
-templ ErrorPage(user *models.User, err error) {
-	@layouts.TailwindUILayout(user) {
+templ ErrorPage(user *models.User, err error, nonce string) {
+	@layouts.TailwindUILayout(user, nonce) {
 		@ErrorPartial(err)
 	}
 }

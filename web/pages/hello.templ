@@ -1,8 +1,8 @@
 package pages
 
 import (
-	"eltimn/todo-plus/web/layouts"
 	"eltimn/todo-plus/models"
+	"eltimn/todo-plus/web/layouts"
 )
 
 func getName(user *models.User) string {
@@ -14,8 +14,8 @@ func getName(user *models.User) string {
 	return name
 }
 
-templ Hello(user *models.User) {
-	@layouts.TailwindUILayout(user) {
+templ Hello(user *models.User, nonce string) {
+	@layouts.TailwindUILayout(user, nonce) {
 		<div>Hello, { getName(user) }!</div>
 	}
 }

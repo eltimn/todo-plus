@@ -36,8 +36,11 @@ type userEnv struct {
 
 func (env *userEnv) loginPage(rw http.ResponseWriter, req *http.Request) error {
 	usr := contextUser(req)
+	nonce := contextNonce(req)
+
 	signals := &user.LoginSignals{}
-	return user.Login(usr, signals).Render(req.Context(), rw)
+
+	return user.Login(usr, signals, nonce).Render(req.Context(), rw)
 }
 
 func (env *userEnv) loginSubmit(rw http.ResponseWriter, req *http.Request) error {
@@ -147,7 +150,9 @@ func (env *userEnv) logout(rw http.ResponseWriter, req *http.Request) error {
 
 func (env *userEnv) signupPage(rw http.ResponseWriter, req *http.Request) error {
 	usr := contextUser(req)
-	return user.Signup(usr).Render(req.Context(), rw)
+	nonce := contextNonce(req)
+
+	return user.Signup(usr, nonce).Render(req.Context(), rw)
 }
 
 func (env *userEnv) signupSubmit(rw http.ResponseWriter, req *http.Request) error {

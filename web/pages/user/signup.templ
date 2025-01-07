@@ -1,12 +1,12 @@
 package user
 
 import (
-	"eltimn/todo-plus/web/layouts"
 	"eltimn/todo-plus/models"
+	"eltimn/todo-plus/web/layouts"
 )
 
-templ Signup(user *models.User) {
-	@layouts.TailwindUILayout(user) {
+templ Signup(user *models.User, nonce string) {
+	@layouts.TailwindUILayout(user, nonce) {
 		if user.IsLoggedIn() {
 			<p>You are already logged in.</p>
 			<p><a href="/">Go to the home page</a></p>

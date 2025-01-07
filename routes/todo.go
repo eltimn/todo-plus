@@ -131,6 +131,8 @@ func (env *todoEnv) deleteCompleted(rw http.ResponseWriter, req *http.Request) e
 
 func (env *todoEnv) renderTodoApp(rw http.ResponseWriter, req *http.Request, isFullPage bool) error {
 	usr := contextUser(req)
+	nonce := contextNonce(req)
+
 	filter := req.URL.Query().Get("filter")
 	if filter == "" {
 		filter = "all"
@@ -142,7 +144,7 @@ func (env *todoEnv) renderTodoApp(rw http.ResponseWriter, req *http.Request, isF
 	}
 
 	if isFullPage {
-		todo.TodoAppPage(usr, todos, count).Render(req.Context(), rw)
+		todo.TodoAppPage(usr, todos, count, nonce).Render(req.Context(), rw)
 	} else {
 		todo.TodoApp(usr, todos, count).Render(req.Context(), rw)
 	}

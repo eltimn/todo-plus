@@ -62,6 +62,7 @@ func (env *counterEnv) incrementUser(rw http.ResponseWriter, req *http.Request) 
 func (env *counterEnv) renderCounterPage(rw http.ResponseWriter, req *http.Request, isFullPage bool) error {
 	usr := contextUser(req)
 	sess := contextSession(req)
+	nonce := contextNonce(req)
 
 	var count uint32
 	countFloat, ok := sess.Get(SessionCountKey).(float64)
@@ -75,7 +76,7 @@ func (env *counterEnv) renderCounterPage(rw http.ResponseWriter, req *http.Reque
 	}
 
 	if isFullPage {
-		pages.CounterPage(usr, signals).Render(req.Context(), rw)
+		pages.CounterPage(usr, signals, nonce).Render(req.Context(), rw)
 	} else {
 		pages.CounterPartial(signals).Render(req.Context(), rw)
 	}

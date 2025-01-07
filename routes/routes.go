@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"context"
 	"eltimn/todo-plus/models"
 	"eltimn/todo-plus/pkg/errs"
 	"eltimn/todo-plus/pkg/router"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	datastar "github.com/starfederation/datastar/sdk/go"
+	"github.com/thanhpk/randstr"
 )
 
 type ContextKey string
@@ -19,6 +21,7 @@ const ContextUserKey ContextKey = "user"
 const ContextSessionIdKey ContextKey = "sessionId"
 const ContextSessionKey ContextKey = "session"
 const ContextIsLoggedInKey ContextKey = "isLoggedIn"
+const ContextNonceKey ContextKey = "nonce"
 
 type RouteEnv struct {
 	Users    *models.UserModel
@@ -38,6 +41,7 @@ func Routes(env *RouteEnv) *router.Router {
 
 	rtr := router.NewRouter(router.WithErrorHandler(handleHttpError))
 	rtr.Use(sessionMiddleware(userEnv))
+	rtr.Use(cspMiddleware())
 
 	// serve static files
 	fs := http.FileServer(http.Dir(env.AssetsPath))
@@ -62,7 +66,9 @@ func Routes(env *RouteEnv) *router.Router {
 
 func helloHandler(rw http.ResponseWriter, req *http.Request) error {
 	usr := contextUser(req)
-	return pages.Hello(usr).Render(req.Context(), rw)
+	nonce := contextNonce(req)
+
+	return pages.Hello(usr, nonce).Render(req.Context(), rw)
 }
 
 // This is written as a regular http.HandlerFunc so it can be used as a catch-all route to handle 404s.
@@ -71,6 +77,8 @@ func homeHandler(env *userEnv) http.Handler {
 	mid := sessionMiddleware(env)
 
 	next := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		nonce := contextNonce(req)
+
 		slog.Debug("URL", slog.String("url", req.URL.Path))
 		if req.URL.Path != "/" || req.Method != http.MethodGet {
 			handleHttpError(rw, req, errs.NotFoundError)
@@ -79,7 +87,7 @@ func homeHandler(env *userEnv) http.Handler {
 
 		usr := contextUser(req)
 
-		err := pages.HomePage(usr).Render(req.Context(), rw)
+		err := pages.HomePage(usr, nonce).Render(req.Context(), rw)
 		if err != nil {
 			handleHttpError(rw, req, err)
 			return
@@ -91,11 +99,12 @@ func homeHandler(env *userEnv) http.Handler {
 
 func nowHandler(rw http.ResponseWriter, req *http.Request) error {
 	usr := contextUser(req)
-	return pages.NowPage(usr, time.Now()).Render(req.Context(), rw)
+	nonce := contextNonce(req)
+	return pages.NowPage(usr, time.Now(), nonce).Render(req.Context(), rw)
 }
 
 func quizSSEHandler(w http.ResponseWriter, req *http.Request) error {
-	time.Sleep(2 * time.Second)
+	time.Sleep(1 * time.Second) // the the loading spinner
 	// Creates a new `ServerSentEventGenerator` instance.
 	sse := datastar.NewSSE(w, req)
 
@@ -139,6 +148,31 @@ func handleHttpError(rw http.ResponseWriter, req *http.Request, err error) {
 		sse.MergeFragmentTempl(ErrorPartial(e))
 	} else {
 		usr := contextUser(req)
-		ErrorPage(usr, e).Render(req.Context(), rw)
+		nonce := contextNonce(req)
+		ErrorPage(usr, e, nonce).Render(req.Context(), rw)
 	}
+}
+
+func cspMiddleware() router.Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+			// "report-uri https://example.com/_csp"
+			nonce := randstr.String(24)
+			csp := fmt.Sprintf("object-src 'none'; script-src 'strict-dynamic' 'nonce-%s'; base-uri 'self'", nonce)
+			rw.Header().Set("Content-Security-Policy", csp)
+			slog.Debug("csp", slog.String("middleware", "header set"))
+
+			ctx := context.WithValue(req.Context(), ContextNonceKey, nonce)
+
+			next.ServeHTTP(rw, req.WithContext(ctx))
+		})
+	}
+}
+
+func contextNonce(req *http.Request) string {
+	nonce, ok := req.Context().Value(ContextNonceKey).(string)
+	if !ok {
+		return ""
+	}
+	return nonce
 }
