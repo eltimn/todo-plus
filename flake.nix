@@ -66,20 +66,8 @@
       #   "go_1_${toString goVersion}"
       # );
       goPkgName = "go"; # 1.23
-
-      # check for a node-version file and use that if it exists
-      nodePkgName = (
-        let
-          nodeVersionPath = ./.node-version;
-        in
-        if builtins.pathExists nodeVersionPath then
-          let
-            nodeVersion = builtins.readFile nodeVersionPath;
-          in
-          "nodejs_${nodeVersion}"
-        else
-          "nodejs"
-      );
+      nodePkgName = "nodejs_22";
+      cgoEnabled = 1;
     in
     {
       # Overlays to use a specific version as the main package. e.g use `pkgs.go` to refer to `pkgs.go_1_23`.
@@ -88,7 +76,6 @@
         nodejs = prev.${nodePkgName};
         go = prev.${goPkgName};
         templ = templ-flake.packages.${prev.system}.templ;
-        gomod2nix = gomod2nix.legacyPackages.${prev.system}.gomod2nix;
       };
 
       packages = forAllSystems (
@@ -104,7 +91,7 @@
             go = pkgs.go;
             # Must be added due to bug https://github.com/nix-community/gomod2nix/issues/120
             pwd = ./.;
-            CGO_ENABLED = 1;
+            CGO_ENABLED = cgoEnabled;
             # https://stackoverflow.com/a/58441379/359319
             # -trimpath
             #   remove all file system paths from the resulting executable.
@@ -198,7 +185,7 @@
               go-task
               go-tools
               golangci-lint
-              gomod2nix
+              gomod2nix.legacyPackages.${system}.gomod2nix
               gotools
               google-cloud-sdk
               sqlite
@@ -210,7 +197,7 @@
             # GCP_PROJECT_ID = "todo-plus-416720";
             # GCP_IMAGE_BUCKET = "custom-server-images";
             TEMPL_PATH = "${pkgs.templ}/bin/templ";
-            CGO_ENABLED = 1; # needed for sqlite driver
+            CGO_ENABLED = cgoEnabled; # needed for sqlite driver
           };
 
           shellHook = ''
