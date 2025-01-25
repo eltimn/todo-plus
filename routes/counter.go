@@ -22,7 +22,12 @@ func userCountVal(req *http.Request) (uint32, session.Session, error) {
 	sess := contextSession(req)
 
 	var count uint32
-	countFloat, ok := sess.Get(SessionCountKey).(float64)
+	countG, err := sess.Get(SessionCountKey)
+	if err != nil {
+		return 0, sess, err
+	}
+
+	countFloat, ok := countG.(float64)
 	if ok {
 		count = uint32(countFloat)
 	}
@@ -36,10 +41,12 @@ func (env *counterEnv) index(rw http.ResponseWriter, req *http.Request) error {
 
 func (env *counterEnv) incrementGlobal(rw http.ResponseWriter, req *http.Request) error {
 	update := gabs.New()
-	updateGlobal(update)
+	err := updateGlobal(update)
+	if err != nil {
+		return err
+	}
 
-	datastar.NewSSE(rw, req).MarshalAndMergeSignals(update)
-	return nil
+	return datastar.NewSSE(rw, req).MarshalAndMergeSignals(update)
 }
 
 func (env *counterEnv) incrementUser(rw http.ResponseWriter, req *http.Request) error {
@@ -49,14 +56,23 @@ func (env *counterEnv) incrementUser(rw http.ResponseWriter, req *http.Request) 
 	}
 
 	val++
-	sess.Set(SessionCountKey, val)
+	err = sess.Set(SessionCountKey, val)
+	if err != nil {
+		return err
+	}
 
 	update := gabs.New()
-	updateGlobal(update)
-	update.Set(val, "user")
+	err = updateGlobal(update)
+	if err != nil {
+		return err
+	}
 
-	datastar.NewSSE(rw, req).MarshalAndMergeSignals(update)
-	return nil
+	_, err = update.Set(val, "user")
+	if err != nil {
+		return err
+	}
+
+	return datastar.NewSSE(rw, req).MarshalAndMergeSignals(update)
 }
 
 func (env *counterEnv) renderCounterPage(rw http.ResponseWriter, req *http.Request, isFullPage bool) error {
@@ -65,7 +81,12 @@ func (env *counterEnv) renderCounterPage(rw http.ResponseWriter, req *http.Reque
 	nonce := contextNonce(req)
 
 	var count uint32
-	countFloat, ok := sess.Get(SessionCountKey).(float64)
+	countG, err := sess.Get(SessionCountKey)
+	if err != nil {
+		return err
+	}
+
+	countFloat, ok := countG.(float64)
 	if ok {
 		count = uint32(countFloat)
 	}
@@ -76,16 +97,15 @@ func (env *counterEnv) renderCounterPage(rw http.ResponseWriter, req *http.Reque
 	}
 
 	if isFullPage {
-		pages.CounterPage(usr, signals, nonce).Render(req.Context(), rw)
-	} else {
-		pages.CounterPartial(signals).Render(req.Context(), rw)
+		return pages.CounterPage(usr, signals, nonce).Render(req.Context(), rw)
 	}
 
-	return nil
+	return pages.CounterPartial(signals).Render(req.Context(), rw)
 }
 
-func updateGlobal(signals *gabs.Container) {
-	signals.Set(globalCounter.Add(1), "global")
+func updateGlobal(signals *gabs.Container) error {
+	_, err := signals.Set(globalCounter.Add(1), "global")
+	return err
 }
 
 func counterRoutes(rtr *router.Router) {

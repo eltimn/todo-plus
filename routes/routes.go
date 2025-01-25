@@ -64,13 +64,6 @@ func Routes(env *RouteEnv) *router.Router {
 	return rtr
 }
 
-func helloHandler(rw http.ResponseWriter, req *http.Request) error {
-	usr := contextUser(req)
-	nonce := contextNonce(req)
-
-	return pages.Hello(usr, nonce).Render(req.Context(), rw)
-}
-
 // This is written as a regular http.HandlerFunc so it can be used as a catch-all route to handle 404s.
 func homeHandler(env *userEnv) http.Handler {
 	// This middleware is not called otherwise. Probably because ServeMux is called directly.
@@ -97,6 +90,13 @@ func homeHandler(env *userEnv) http.Handler {
 	return mid(next)
 }
 
+func helloHandler(rw http.ResponseWriter, req *http.Request) error {
+	usr := contextUser(req)
+	nonce := contextNonce(req)
+
+	return pages.Hello(usr, nonce).Render(req.Context(), rw)
+}
+
 func nowHandler(rw http.ResponseWriter, req *http.Request) error {
 	usr := contextUser(req)
 	nonce := contextNonce(req)
@@ -109,12 +109,13 @@ func quizSSEHandler(w http.ResponseWriter, req *http.Request) error {
 	sse := datastar.NewSSE(w, req)
 
 	// Merges HTML fragments into the DOM.
-	sse.MergeFragments(`<div id="question">What do you put in a toaster?</div>`)
+	err := sse.MergeFragments(`<div id="question">What do you put in a toaster?</div>`)
+	if err != nil {
+		return err
+	}
 
 	// Merges signals into the signals.
-	sse.MergeSignals([]byte(`{response: '', answer: 'bread'}`))
-
-	return nil
+	return sse.MergeSignals([]byte(`{response: '', answer: 'bread'}`))
 }
 
 func handleHttpError(rw http.ResponseWriter, req *http.Request, err error) {
@@ -145,11 +146,17 @@ func handleHttpError(rw http.ResponseWriter, req *http.Request, err error) {
 	if isDatastarRequest == "true" {
 		// ErrorPartial(e).Render(req.Context(), rw)
 		sse := datastar.NewSSE(rw, req)
-		sse.MergeFragmentTempl(ErrorPartial(e))
+		err := sse.MergeFragmentTempl(ErrorPartial(e))
+		if err != nil {
+			slog.Error("Error rendering datastart ErrorPartial", errs.ErrAttr(err))
+		}
 	} else {
 		usr := contextUser(req)
 		nonce := contextNonce(req)
-		ErrorPage(usr, e, nonce).Render(req.Context(), rw)
+		err := ErrorPage(usr, e, nonce).Render(req.Context(), rw)
+		if err != nil {
+			slog.Error("Error rendering ErrorPage", errs.ErrAttr(err))
+		}
 	}
 }
 

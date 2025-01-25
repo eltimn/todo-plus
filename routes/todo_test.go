@@ -24,8 +24,20 @@ func (m *mockTodoModel) FetchTodo(c context.Context, todoId int64) (*models.Todo
 func (m *mockTodoModel) FetchTodos(c context.Context, userId int64, filter string) ([]models.Todo, int, error) {
 	var todos []models.Todo
 
-	todos = append(todos, models.Todo{1, 1, "message1", "message1", false})
-	todos = append(todos, models.Todo{2, 1, "message2", "message2", false})
+	todos = append(todos, models.Todo{
+		Id:          1,
+		UserId:      1,
+		PlainText:   "message1",
+		RichText:    "message1",
+		IsCompleted: false,
+	})
+	todos = append(todos, models.Todo{
+		Id:          2,
+		UserId:      1,
+		PlainText:   "message2",
+		RichText:    "message2",
+		IsCompleted: false,
+	})
 
 	return todos, 2, nil
 }

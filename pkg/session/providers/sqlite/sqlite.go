@@ -17,26 +17,21 @@ type SessionStore struct {
 func (st *SessionStore) Set(key string, value interface{}) error {
 	currentValue := st.session.Value
 	currentValue[key] = value
-	pder.sessionUpdate(st.session.Id, currentValue)
-	return nil
+	return pder.sessionUpdate(st.session.Id, currentValue)
 }
 
-func (st *SessionStore) Get(key string) interface{} {
-	currentValue := st.session.Value
-
-	if v, ok := currentValue[key]; ok {
-		pder.sessionUpdate(st.session.Id, currentValue)
-		return v
+func (st *SessionStore) Get(key string) (interface{}, error) {
+	if v, ok := st.session.Value[key]; ok {
+		return v, nil
 	}
 
-	return nil
+	return nil, nil
 }
 
 func (st *SessionStore) Delete(key string) error {
 	currentValue := st.session.Value
 	delete(currentValue, key)
-	pder.sessionUpdate(st.session.Id, currentValue)
-	return nil
+	return pder.sessionUpdate(st.session.Id, currentValue)
 }
 
 func (st *SessionStore) SessionID() string {

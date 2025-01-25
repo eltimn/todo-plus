@@ -61,7 +61,10 @@ func (env *userEnv) loginSubmit(rw http.ResponseWriter, req *http.Request) error
 	}
 
 	sess := contextSession(req)
-	sess.Set(SessionUserIdKey, usr.Id)
+	err = sess.Set(SessionUserIdKey, usr.Id)
+	if err != nil {
+		return err
+	}
 
 	slog.Info("User logged in", slog.String("username", usr.Username))
 
@@ -70,9 +73,9 @@ func (env *userEnv) loginSubmit(rw http.ResponseWriter, req *http.Request) error
 	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusOK)
 	jsonData := []byte(`{"status":"OK"}`)
-	rw.Write(jsonData)
+	_, err = rw.Write(jsonData)
 
-	return nil
+	return err
 }
 
 type formResponse struct {
@@ -91,8 +94,8 @@ func handleLoginError(rw http.ResponseWriter, err error) error {
 	}
 
 	rw.WriteHeader(http.StatusBadRequest)
-	rw.Write(retJson)
-	return nil
+	_, err = rw.Write(retJson)
+	return err
 }
 
 func (env *userEnv) loginDSPost(rw http.ResponseWriter, req *http.Request) error {
@@ -116,7 +119,10 @@ func (env *userEnv) loginDSPost(rw http.ResponseWriter, req *http.Request) error
 	}
 
 	sess := contextSession(req)
-	sess.Set(SessionUserIdKey, usr.Id)
+	err = sess.Set(SessionUserIdKey, usr.Id)
+	if err != nil {
+		return err
+	}
 
 	slog.Debug("User logged in", slog.String("username", usr.Username))
 
@@ -173,7 +179,10 @@ func (env *userEnv) signupSubmit(rw http.ResponseWriter, req *http.Request) erro
 	slog.Info("User created", slog.String("username", user.Username))
 
 	sess := contextSession(req)
-	sess.Set(SessionUserIdKey, user.Id)
+	err = sess.Set(SessionUserIdKey, user.Id)
+	if err != nil {
+		return err
+	}
 
 	slog.Info("User logged in", slog.String("username", user.Username))
 
@@ -222,20 +231,27 @@ func sessionMiddleware(env *userEnv) router.Middleware {
 
 			// check if there's a UserId in the session
 			var userId int64
-			userIdFloat, ok := sess.Get(SessionUserIdKey).(float64)
-			if ok {
-				userId = int64(userIdFloat)
-			}
+			userId0, err := sess.Get(SessionUserIdKey)
 
-			if userId != 0 {
-				// get the user from the database
-				user, err := env.users.GetById(req.Context(), userId)
-				if err != nil {
-					slog.Debug("Error fetching user", errs.ErrAttr(err))
-				} else {
-					// add the user to the request context
-					ctx = context.WithValue(ctx, ContextUserKey, user)
-					ctx = context.WithValue(ctx, ContextIsLoggedInKey, true)
+			if err != nil {
+				slog.Warn("error Getting UserId from session", errs.ErrAttr(err))
+			} else {
+
+				userIdInt, ok := userId0.(int64)
+				if ok {
+					userId = int64(userIdInt)
+				}
+
+				if userId != 0 {
+					// get the user from the database
+					user, err := env.users.GetById(req.Context(), userId)
+					if err != nil {
+						slog.Debug("Error fetching user", errs.ErrAttr(err))
+					} else {
+						// add the user to the request context
+						ctx = context.WithValue(ctx, ContextUserKey, user)
+						ctx = context.WithValue(ctx, ContextIsLoggedInKey, true)
+					}
 				}
 			}
 

@@ -94,7 +94,10 @@ func (model *SessionModel) GetById(c context.Context, sessionId string) (*Sessio
 	// TODO: check if it's active
 
 	var valueMap map[string]interface{}
-	json.Unmarshal([]byte(value), &valueMap)
+	err = json.Unmarshal([]byte(value), &valueMap)
+	if err != nil {
+		return &Session{}, err
+	}
 
 	session.TimeAccessed = t
 	session.Value = valueMap

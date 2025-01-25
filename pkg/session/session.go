@@ -1,6 +1,7 @@
 package session
 
 import (
+	"eltimn/todo-plus/pkg/errs"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -10,6 +11,8 @@ import (
 
 	"github.com/segmentio/ksuid"
 )
+
+// TODO: add badgerdb/redis provider ??
 
 type Manager struct {
 	cookieName  string     // private cookiename
@@ -51,7 +54,7 @@ type Provider interface {
 
 type Session interface {
 	Set(key string, value interface{}) error //set session value
-	Get(key string) interface{}              //get session value
+	Get(key string) (interface{}, error)     //get session value
 	Delete(key string) error                 //delete session value
 	SessionID() string                       //back current sessionID
 }
@@ -116,7 +119,10 @@ func (manager *Manager) SessionDestroy(w http.ResponseWriter, r *http.Request) {
 	} else {
 		manager.lock.Lock()
 		defer manager.lock.Unlock()
-		manager.provider.SessionDestroy(cookie.Value)
+		err = manager.provider.SessionDestroy(cookie.Value)
+		if err != nil {
+			slog.Warn("error destrying session", errs.ErrAttr(err))
+		}
 		expiration := time.Now()
 		cookie := http.Cookie{
 			Name:     manager.cookieName,

@@ -144,12 +144,10 @@ func (env *todoEnv) renderTodoApp(rw http.ResponseWriter, req *http.Request, isF
 	}
 
 	if isFullPage {
-		todo.TodoAppPage(usr, todos, count, nonce).Render(req.Context(), rw)
-	} else {
-		todo.TodoApp(usr, todos, count).Render(req.Context(), rw)
+		return todo.TodoAppPage(usr, todos, count, nonce).Render(req.Context(), rw)
 	}
 
-	return nil
+	return todo.TodoApp(usr, todos, count).Render(req.Context(), rw)
 }
 
 func todoRoutes(rtr *router.Router, todos *models.TodoModel) {
